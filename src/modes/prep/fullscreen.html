@@ -1247,25 +1247,76 @@
     });
 
     // Update header countdown with meeting context
+    let calendarStartDate = null; // Set by loadCalendarContext if available
+
     function updateHeaderCountdown() {
       const title = document.getElementById('meetingTitle').value;
       const attendees = document.getElementById('meetingAttendees').value;
       const el = document.getElementById('headerCountdown');
-      if (title || attendees) {
-        const parts = [];
-        if (title) parts.push(title);
-        if (attendees) parts.push('with ' + attendees.split(',')[0].trim());
-        el.textContent = parts.join(' ');
-      } else {
+
+      if (!title && !attendees) {
         el.textContent = '';
+        return;
       }
+
+      const parts = [];
+
+      // Show time-until if we have calendar start date
+      if (calendarStartDate) {
+        const mins = Math.round((new Date(calendarStartDate).getTime() - Date.now()) / 60000);
+        if (mins > 0) {
+          parts.push(`In ${mins} min:`);
+        }
+      }
+
+      if (title) parts.push(title);
+      if (attendees) parts.push('with ' + attendees.split(',')[0].trim());
+      el.textContent = parts.join(' ');
     }
 
     // Listen for context field changes
     document.getElementById('meetingTitle').addEventListener('input', updateHeaderCountdown);
     document.getElementById('meetingAttendees').addEventListener('input', updateHeaderCountdown);
 
+    // Auto-fill from calendar context if available
+    async function loadCalendarContext() {
+      try {
+        const state = await window.presence.getState();
+        const calCtx = state.prep && state.prep.calendarContext;
+        if (!calCtx) return;
+
+        if (calCtx.title) {
+          document.getElementById('meetingTitle').value = calCtx.title;
+        }
+        if (calCtx.attendees) {
+          document.getElementById('meetingAttendees').value = calCtx.attendees;
+        }
+        if (calCtx.description) {
+          document.getElementById('meetingDescription').value = calCtx.description;
+        }
+        if (calCtx.inferredType) {
+          selectedMeetingType = calCtx.inferredType;
+          document.querySelectorAll('.type-option').forEach(btn => {
+            btn.classList.toggle('selected', btn.dataset.type === selectedMeetingType);
+          });
+        }
+
+        // Set calendar start date for header countdown
+        if (calCtx.startDate) {
+          calendarStartDate = calCtx.startDate;
+        }
+
+        updateHeaderCountdown();
+
+        // Clear the calendar context from state so it doesn't re-fill on next open
+        window.presence.updateState({ prep: { calendarContext: null } });
+      } catch (e) {
+        // Calendar context is optional — ignore errors
+      }
+    }
+
     // Initialize
+    loadCalendarContext();
     showStage(1);
   </script>
 </body>

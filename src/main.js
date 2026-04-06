@@ -1,4 +1,4 @@
-const { app, Tray, Menu, globalShortcut, ipcMain, nativeImage, systemPreferences } = require('electron');
+const { app, Tray, Menu, globalShortcut, ipcMain, nativeImage, systemPreferences, Notification } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
@@ -39,6 +39,9 @@ loadEnvFile();
 const stateManager = require('./shared/state-manager');
 const aiClient = require('./shared/ai-client');
 const windowManager = require('./windows/window-manager');
+const CalendarBridge = require('./shared/calendar-bridge');
+
+const calendar = new CalendarBridge();
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -187,10 +190,84 @@ app.whenReady().then(() => {
   // Intentionally no initial window — this is a menubar-only app.
   // User activates modes via tray menu click or global shortcuts.
   // This matches the UX pattern of both MeetingCoach and DemoPrompter.
+  // Start calendar auto-surface polling
+  if (calendar.isAvailable) {
+    startCalendarPolling();
+    console.log('[Presence] Calendar integration active.');
+  } else {
+    console.log('[Presence] Calendar integration unavailable (not macOS).');
+  }
+
   console.log('[Presence] App ready. Tray icon active.');
   console.log(`[Presence] State file: ${path.join(configDir, 'state.json')}`);
   console.log(`[Presence] AI available: ${aiClient.isAvailable}`);
 });
+
+// ---------------------------------------------------------------------------
+// Calendar Auto-Surface
+// ---------------------------------------------------------------------------
+let calendarPollInterval = null;
+let lastNotifiedMeetingId = null;
+
+function startCalendarPolling() {
+  // Check every 60 seconds for meetings starting within 15 minutes
+  calendarPollInterval = setInterval(async () => {
+    try {
+      const result = await calendar.getNextMeeting(15);
+      if (result.error || !result.meeting) return;
+
+      const meeting = result.meeting;
+
+      // Don't notify for the same meeting twice
+      if (meeting.id === lastNotifiedMeetingId) return;
+      lastNotifiedMeetingId = meeting.id;
+
+      // Show notification
+      const notification = new Notification({
+        title: `Meeting in ${result.minutesUntil} min`,
+        body: `${meeting.title}${meeting.attendees ? ' with ' + meeting.attendees.split(',')[0].trim() : ''}`,
+        subtitle: 'Prep now?',
+        silent: false,
+        hasReply: false
+      });
+
+      notification.on('click', () => {
+        // Pre-fill prep state with calendar context and switch to prep mode
+        stateManager.updateState({
+          prep: {
+            calendarContext: {
+              id: meeting.id,
+              title: meeting.title,
+              attendees: meeting.attendees,
+              description: meeting.description,
+              location: meeting.location,
+              meetingLink: meeting.meetingLink,
+              startDate: meeting.startDate,
+              inferredType: meeting.inferredType
+            }
+          }
+        });
+        switchToMode('prep');
+      });
+
+      notification.show();
+    } catch (err) {
+      console.warn('[Presence] Calendar poll error:', err.message);
+    }
+  }, 60000);
+
+  // Also run once immediately (after a short delay for app to settle)
+  setTimeout(async () => {
+    try {
+      const result = await calendar.getNextMeeting(15);
+      if (result.meeting) {
+        console.log(`[Presence] Next meeting: "${result.meeting.title}" in ${result.minutesUntil} min`);
+      }
+    } catch {
+      // Ignore initial check errors
+    }
+  }, 5000);
+}
 
 // ---------------------------------------------------------------------------
 // IPC Handlers
@@ -245,13 +322,13 @@ ipcMain.handle('generate-cards', async (event, context) => {
   return await aiClient.generateCards(context);
 });
 
-// Calendar (stub — implemented in Phase 5)
-ipcMain.handle('get-upcoming-meetings', async () => {
-  return [];
+// Calendar
+ipcMain.handle('get-upcoming-meetings', async (event, withinMinutes) => {
+  return await calendar.getUpcomingMeetings(withinMinutes || 60);
 });
 
 ipcMain.handle('get-meeting-context', async (event, id) => {
-  return null;
+  return await calendar.getMeetingContext(id);
 });
 
 // Audio
@@ -286,6 +363,7 @@ ipcMain.on('quit-app', () => app.quit());
 // ---------------------------------------------------------------------------
 app.on('will-quit', () => {
   globalShortcut.unregisterAll();
+  if (calendarPollInterval) clearInterval(calendarPollInterval);
   stateManager.flush();
 });
 
