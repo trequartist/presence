@@ -232,7 +232,9 @@
     const state = await window.presence.getState();
     const isFirstRun = !state.settings?.hasCompletedSetup;
 
-    if (!isFirstRun) {
+    if (isFirstRun) {
+      cancelBtn.textContent = 'Skip for now';
+    } else {
       welcomeBanner.classList.add('hidden');
       saveBtn.textContent = 'Save';
     }
@@ -279,19 +281,29 @@
     setTimeout(() => window.close(), 600);
   });
 
-  cancelBtn.addEventListener('click', () => window.close());
-  closeBtn.addEventListener('click', () => window.close());
+  cancelBtn.addEventListener('click', () => {
+    // Mark setup complete even on cancel (user chose to skip)
+    window.presence.completeSetup();
+    window.close();
+  });
+  closeBtn.addEventListener('click', () => {
+    window.presence.completeSetup();
+    window.close();
+  });
 
   // Allow Enter to save
   apiKeyInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') saveBtn.click();
   });
 
-  // Listen for API key save confirmation from main process
+  // Listen for state changes to refresh AI status (guarded to avoid redundant updates)
+  let lastAiStatus = null;
   window.presence.onStateUpdate(() => {
-    // Re-check app info to refresh status dots
     window.presence.getAppInfo().then(info => {
-      updateStatus('ai', info.aiAvailable, info.aiAvailable ? 'AI ready (Gemini)' : 'Set API key to enable AI features');
+      if (info.aiAvailable !== lastAiStatus) {
+        lastAiStatus = info.aiAvailable;
+        updateStatus('ai', info.aiAvailable, info.aiAvailable ? 'AI ready (Gemini)' : 'Set API key to enable AI features');
+      }
     });
   });
 
