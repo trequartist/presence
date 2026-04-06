@@ -419,7 +419,7 @@ ipcMain.on('save-api-key', (event, key) => {
     // Save to config dir (same location as state.json)
     const configDir = path.join(os.homedir(), '.config', 'presence');
     fs.mkdirSync(configDir, { recursive: true });
-    fs.writeFileSync(path.join(configDir, 'api-key'), key);
+    fs.writeFileSync(path.join(configDir, 'api-key'), key, { mode: 0o600 });
 
     // Also try to update .env for dev mode (may fail in packaged app — that's OK)
     try {
