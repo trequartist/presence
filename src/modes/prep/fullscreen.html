@@ -842,7 +842,8 @@
       document.getElementById('startRehearsalBtn').classList.add('hidden');
       document.getElementById('stopRehearsalBtn').classList.remove('hidden');
       document.getElementById('micIndicator').classList.add('listening');
-      document.getElementById('micStatus').textContent = 'Listening...';
+      document.getElementById('micStatus').textContent = 'Setting up...';
+      document.getElementById('micStatus').style.color = ''; // Reset from any prior error
 
       // Re-apply context in case user edited Stage 1 after briefing
       rehearsalEngine.setup(getContext());
@@ -888,7 +889,11 @@
         return;
       }
 
+      // Re-check in case user clicked Stop during the await
+      if (!isRehearsing) { audioEngine = null; return; }
+
       const audioStarted = await audioEngine.start();
+      if (!isRehearsing) { if (audioEngine) { audioEngine.stop(); audioEngine = null; } return; }
       if (!audioStarted) {
         isRehearsing = false;
         document.getElementById('startRehearsalBtn').classList.remove('hidden');
@@ -900,6 +905,8 @@
         if (coachingEngine) { coachingEngine.reset(); coachingEngine = null; }
         return;
       }
+
+      document.getElementById('micStatus').textContent = 'Listening...';
 
       // Start timer
       rehearsalTimerInterval = setInterval(updateRehearsalTimer, 1000);
