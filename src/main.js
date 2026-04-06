@@ -1,15 +1,17 @@
-const { app, Tray, Menu, globalShortcut, ipcMain, nativeImage, systemPreferences, Notification } = require('electron');
+const { app, BrowserWindow, Tray, Menu, globalShortcut, ipcMain, nativeImage, systemPreferences, Notification } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
+
+const ENV_PATH = path.join(__dirname, '..', '.env');
+const CONFIG_DIR = path.join(os.homedir(), '.config', 'presence');
 
 // ---------------------------------------------------------------------------
 // Load .env file (inline parser — no dotenv dependency)
 // ---------------------------------------------------------------------------
 function loadEnvFile() {
-  const envPath = path.join(__dirname, '..', '.env');
   try {
-    const content = fs.readFileSync(envPath, 'utf-8');
+    const content = fs.readFileSync(ENV_PATH, 'utf-8');
     for (const line of content.split('\n')) {
       const trimmed = line.trim();
       if (!trimmed || trimmed.startsWith('#')) continue;
@@ -33,6 +35,16 @@ function loadEnvFile() {
 
 loadEnvFile();
 
+// Load API key from config dir if not in env (packaged app fallback)
+if (!process.env.GEMINI_API_KEY) {
+  try {
+    const configKey = fs.readFileSync(
+      path.join(CONFIG_DIR, 'api-key'), 'utf-8'
+    ).trim();
+    if (configKey) process.env.GEMINI_API_KEY = configKey;
+  } catch { /* No saved key — AI features will be unavailable */ }
+}
+
 // ---------------------------------------------------------------------------
 // Imports (after env is loaded so ai-client can read GEMINI_API_KEY)
 // ---------------------------------------------------------------------------
@@ -43,10 +55,18 @@ const CalendarBridge = require('./shared/calendar-bridge');
 
 const calendar = new CalendarBridge();
 
+const MAIN_WEB_PREFS = {
+  preload: path.join(__dirname, 'preload.js'),
+  contextIsolation: true,
+  nodeIntegration: false
+};
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 let tray = null;
+let settingsWindow = null;
+let shortcutsWindow = null;
 
 function getActiveMode() {
   return stateManager.getState().activeMode || 'coach';
@@ -93,8 +113,11 @@ function createTray() {
 
 function updateTrayMenu() {
   const activeMode = getActiveMode();
+  const state = stateManager.getState();
+  const autoStart = state.settings?.autoStartEnabled || false;
 
   const contextMenu = Menu.buildFromTemplate([
+    // --- Modes ---
     {
       label: 'Meeting Coach',
       type: 'radio',
@@ -114,7 +137,30 @@ function updateTrayMenu() {
       click: () => switchToMode('prep')
     },
     { type: 'separator' },
-    { label: 'Quit', click: () => app.quit() }
+    // --- Utilities ---
+    {
+      label: 'Settings...',
+      click: () => showSettingsWindow()
+    },
+    {
+      label: 'Keyboard Shortcuts',
+      click: () => showShortcutsWindow()
+    },
+    { type: 'separator' },
+    // --- Preferences ---
+    {
+      label: 'Launch at Login',
+      type: 'checkbox',
+      checked: autoStart,
+      click: (menuItem) => {
+        const enabled = menuItem.checked;
+        app.setLoginItemSettings({ openAtLogin: enabled });
+        stateManager.updateState({ settings: { autoStartEnabled: enabled } });
+        console.log(`[Presence] Launch at login: ${enabled}`);
+      }
+    },
+    { type: 'separator' },
+    { label: 'Quit Presence', click: () => app.quit() }
   ]);
 
   tray.setContextMenu(contextMenu);
@@ -143,8 +189,7 @@ app.whenReady().then(() => {
   if (app.dock) app.dock.hide();
 
   // Initialize state manager with ~/.config/presence/
-  const configDir = path.join(os.homedir(), '.config', 'presence');
-  stateManager.init(configDir);
+  stateManager.init(CONFIG_DIR);
 
   // Initialize AI client
   aiClient.init();
@@ -198,9 +243,16 @@ app.whenReady().then(() => {
     console.log('[Presence] Calendar integration unavailable (not macOS).');
   }
 
+  // Sync auto-start setting with OS
+  const autoStart = stateManager.getState().settings?.autoStartEnabled || false;
+  app.setLoginItemSettings({ openAtLogin: autoStart });
+
   console.log('[Presence] App ready. Tray icon active.');
-  console.log(`[Presence] State file: ${path.join(configDir, 'state.json')}`);
+  console.log(`[Presence] State file: ${path.join(CONFIG_DIR, 'state.json')}`);
   console.log(`[Presence] AI available: ${aiClient.isAvailable}`);
+
+  // Check for first-run (show settings if setup not completed)
+  checkFirstRun();
 });
 
 // ---------------------------------------------------------------------------
@@ -352,6 +404,120 @@ ipcMain.on('close-editor', () => {
 });
 
 ipcMain.on('quit-app', () => app.quit());
+
+// Settings
+ipcMain.on('open-settings', () => showSettingsWindow());
+
+ipcMain.on('save-api-key', (event, key) => {
+  // Validate key at the IPC trust boundary
+  if (!key || typeof key !== 'string' || key.trim().length < 10) return;
+  key = key.trim();
+
+  // Write API key to user config dir (writable in packaged app)
+  // Also update .env for development mode
+  try {
+    // Save to config dir (same location as state.json)
+    fs.mkdirSync(CONFIG_DIR, { recursive: true });
+    fs.writeFileSync(path.join(CONFIG_DIR, 'api-key'), key, { mode: 0o600 });
+
+    // Also try to update .env for dev mode (may fail in packaged app — that's OK)
+    try {
+      let content = '';
+      try { content = fs.readFileSync(ENV_PATH, 'utf-8'); } catch { /* new file */ }
+      const lines = content.split('\n');
+      let found = false;
+      for (let i = 0; i < lines.length; i++) {
+        if (/^GEMINI_API_KEY\s*=/.test(lines[i].trim())) {
+          lines[i] = `GEMINI_API_KEY=${key}`;
+          found = true;
+          break;
+        }
+      }
+      if (!found) lines.push(`GEMINI_API_KEY=${key}`);
+      fs.writeFileSync(ENV_PATH, lines.join('\n'));
+    } catch { /* Read-only in packaged app — config dir has the key */ }
+
+    process.env.GEMINI_API_KEY = key;
+    aiClient.init(); // Re-initialize with new key
+    console.log('[Presence] API key saved.');
+  } catch (err) {
+    console.error('[Presence] Failed to save API key:', err.message);
+  }
+});
+
+ipcMain.on('complete-setup', () => {
+  stateManager.updateState({ settings: { hasCompletedSetup: true } });
+});
+
+ipcMain.handle('get-app-info', () => {
+  const apiKey = process.env.GEMINI_API_KEY || '';
+  return {
+    version: app.getVersion(),
+    aiAvailable: aiClient.isAvailable,
+    hasApiKey: apiKey.length > 0,
+    apiKeyHint: apiKey.length > 4 ? '••••••••' + apiKey.slice(-4) : '',
+    calendarAvailable: calendar.isAvailable,
+    platform: process.platform
+  };
+});
+
+// ---------------------------------------------------------------------------
+// Settings & Shortcuts Windows
+// ---------------------------------------------------------------------------
+function showSettingsWindow() {
+  if (settingsWindow && !settingsWindow.isDestroyed()) {
+    settingsWindow.focus();
+    return;
+  }
+
+  settingsWindow = new BrowserWindow({
+    width: 480,
+    height: 520,
+    frame: false,
+    transparent: true,
+    alwaysOnTop: true,
+    resizable: false,
+    show: false,
+    webPreferences: { ...MAIN_WEB_PREFS }
+  });
+
+  settingsWindow.loadFile(path.join(__dirname, 'windows', 'settings.html'));
+  settingsWindow.once('ready-to-show', () => settingsWindow.show());
+  settingsWindow.on('closed', () => { settingsWindow = null; });
+}
+
+function showShortcutsWindow() {
+  if (shortcutsWindow && !shortcutsWindow.isDestroyed()) {
+    shortcutsWindow.focus();
+    return;
+  }
+
+  shortcutsWindow = new BrowserWindow({
+    width: 420,
+    height: 460,
+    frame: false,
+    transparent: true,
+    alwaysOnTop: true,
+    resizable: false,
+    show: false,
+    webPreferences: { ...MAIN_WEB_PREFS }
+  });
+
+  shortcutsWindow.loadFile(path.join(__dirname, 'windows', 'shortcuts.html'));
+  shortcutsWindow.once('ready-to-show', () => shortcutsWindow.show());
+  shortcutsWindow.on('blur', () => { if (shortcutsWindow && !shortcutsWindow.isDestroyed()) shortcutsWindow.hide(); });
+  shortcutsWindow.on('closed', () => { shortcutsWindow = null; });
+}
+
+// ---------------------------------------------------------------------------
+// First-Run Experience
+// ---------------------------------------------------------------------------
+function checkFirstRun() {
+  const state = stateManager.getState();
+  if (!state.settings?.hasCompletedSetup) {
+    showSettingsWindow();
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Cleanup

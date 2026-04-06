@@ -33,6 +33,11 @@ const DEFAULT_STATE = {
     meetingType: 'general',
     customScenario: '',
     history: []
+  },
+
+  settings: {
+    hasCompletedSetup: false,
+    autoStartEnabled: false
   }
 };
 
