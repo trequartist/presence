@@ -113,6 +113,7 @@ class StateManager {
    * Return current in-memory state (read-only copy).
    */
   getState() {
+    if (!this._state) return null;
     return JSON.parse(JSON.stringify(this._state));
   }
 
@@ -120,6 +121,7 @@ class StateManager {
    * Deep-merge a partial update into state, save, and broadcast.
    */
   updateState(partial) {
+    if (!this._state) return;
     this._deepMerge(this._state, partial);
     this._scheduleSave();
     this._broadcast();
