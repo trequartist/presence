@@ -778,7 +778,12 @@
     // =============================================
     async function generateBriefing() {
       const ctx = getContext();
-      rehearsalEngine.setup(ctx);
+      // Only call setup() if no rehearsal transcript exists yet.
+      // Calling setup() unconditionally would wipe _fullTranscript if the user
+      // navigates Stage3 -> Stage2 -> Stage3/4, causing an empty scorecard.
+      if (rehearsalEngine.getTranscript().length === 0) {
+        rehearsalEngine.setup(ctx);
+      }
 
       const loading = document.getElementById('briefingLoading');
       const content = document.getElementById('briefingContent');

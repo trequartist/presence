@@ -427,6 +427,49 @@ test('startRehearsal builds correct system prompt for each type', () => {
     assert.strictEqual(engine.isActive, false);
   });
 
+  // --- setup() does not wipe existing transcript (double-setup regression) ---
+  // Regression guard for: generateBriefing (Stage 2) calling setup() unconditionally
+  // would wipe _fullTranscript if user navigated Stage3 -> Stage2 -> Stage4.
+  // The fix: fullscreen.html only calls setup() when transcript is empty.
+  // Here we verify setup() itself DOES reset (the engine contract is unchanged) —
+  // the guard belongs in the caller.
+
+  await testAsync('setup resets transcript — caller must guard against double-setup', async () => {
+    const mockAI = async () => ({ text: 'AI response', error: null });
+    const engine = new RehearsalEngine({ queryAI: mockAI });
+
+    // Simulate Stage 2: setup + generateBriefing (no conversation yet)
+    engine.setup({ title: 'Interview Prep' });
+
+    // Simulate Stage 3: startRehearsal builds conversation
+    engine.setup({ title: 'Interview Prep' });
+    engine.startRehearsal('interview');
+    await engine.generateOpener();
+    await engine.processUserTurn('I have 5 years of experience.');
+    assert.ok(engine._fullTranscript.length >= 2, 'transcript should have entries after rehearsal');
+
+    // The transcript is present — a naive second setup() call would wipe it
+    const lengthBeforeWipe = engine._fullTranscript.length;
+    engine.setup({ title: 'Interview Prep' }); // simulates the bug in a naive caller
+    assert.strictEqual(engine._fullTranscript.length, 0,
+      'setup() resets transcript — caller must check getTranscript().length before calling');
+    assert.ok(lengthBeforeWipe >= 2, 'confirmed: data was there before naive setup()');
+
+    // Verify that getTranscript() can be used as the guard condition
+    const engine2 = new RehearsalEngine({ queryAI: mockAI });
+    engine2.setup({ title: 'Test' });
+    engine2.startRehearsal('general');
+    await engine2.generateOpener();
+    const transcriptBeforeGuardedSetup = engine2.getTranscript();
+    // Guard: only call setup() if transcript is empty
+    if (transcriptBeforeGuardedSetup.length === 0) {
+      engine2.setup({ title: 'Test' });
+    }
+    // Transcript must be preserved
+    assert.ok(engine2._fullTranscript.length >= 1,
+      'with guard in place, transcript survives a back-navigation to briefing stage');
+  });
+
   // --- Summary ---
   console.log(`\n${passCount}/${testCount} tests passed.\n`);
   if (passCount < testCount) process.exit(1);
