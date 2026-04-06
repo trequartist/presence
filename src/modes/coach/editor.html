@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Presence — Coach Editor</title>
+  <link rel="stylesheet" href="../../shared/styles/glassmorphism.css">
+  <style>
+    .container {
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      height: 100vh;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .title {
+      font-size: 16px;
+      font-weight: 600;
+    }
+    .mode-badge {
+      font-size: 10px;
+      color: var(--color-green);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      padding: 4px 8px;
+      border: 1px solid rgba(68, 221, 136, 0.3);
+      border-radius: var(--radius-pill);
+    }
+    .placeholder {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--color-text-muted);
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+  <div class="glass-panel container drag-handle">
+    <div class="header no-drag">
+      <span class="title">Meeting Coach</span>
+      <span class="mode-badge">Phase 2</span>
+    </div>
+    <div class="placeholder">
+      Full editor UI coming in Phase 2
+    </div>
+    <div class="no-drag" style="display: flex; gap: 8px;">
+      <button class="btn btn-primary" onclick="window.presence.startSession()">Start Session</button>
+      <button class="btn btn-danger" onclick="window.presence.stopSession()">Stop</button>
+      <button class="btn" onclick="window.presence.closeEditor()">Close</button>
+    </div>
+  </div>
+  <script>
+    window.presence.onStateUpdate((state) => {
+      console.log('[Coach Editor] State update received');
+    });
+    window.presence.onSessionSummary((summary) => {
+      console.log('[Coach Editor] Session summary:', summary);
+    });
+  </script>
+</body>
+</html>
