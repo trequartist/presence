@@ -8,73 +8,1201 @@
     body {
       background: #0a0a0e;
       height: 100vh;
+      overflow: hidden;
+      user-select: none;
+    }
+
+    /* Layout */
+    .app {
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      padding: 32px 48px;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+      flex-shrink: 0;
+    }
+
+    .header-left {
       display: flex;
       align-items: center;
-      justify-content: center;
+      gap: 12px;
     }
-    .container {
-      text-align: center;
-      max-width: 600px;
-    }
-    .title {
-      font-size: 28px;
-      font-weight: 300;
-      margin-bottom: 8px;
-      letter-spacing: -0.5px;
-    }
-    .subtitle {
-      font-size: 14px;
+
+    .app-title {
+      font-size: 13px;
+      font-weight: 500;
       color: var(--color-text-muted);
-      margin-bottom: 32px;
-    }
-    .mode-badge {
-      font-size: 11px;
-      color: var(--color-amber);
       text-transform: uppercase;
-      letter-spacing: 1px;
-      padding: 6px 16px;
-      border: 1px solid rgba(255, 170, 0, 0.3);
-      border-radius: var(--radius-pill);
-      display: inline-block;
+      letter-spacing: 1.5px;
+    }
+
+    .countdown {
+      font-size: 13px;
+      color: var(--color-amber);
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Stage container */
+    .stage {
+      flex: 1;
+      display: none;
+      flex-direction: column;
+      overflow-y: auto;
+      overflow-x: hidden;
+    }
+
+    .stage.active {
+      display: flex;
+    }
+
+    .stage-title {
+      font-size: 24px;
+      font-weight: 300;
+      letter-spacing: -0.5px;
+      margin-bottom: 4px;
+    }
+
+    .stage-subtitle {
+      font-size: 13px;
+      color: var(--color-text-muted);
       margin-bottom: 24px;
     }
-    .hint {
+
+    /* Footer nav */
+    .footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-top: 20px;
+      flex-shrink: 0;
+      border-top: 1px solid rgba(255,255,255,0.06);
+      margin-top: 20px;
+    }
+
+    /* Stage indicators */
+    .stage-dots {
+      display: flex;
+      gap: 8px;
+    }
+
+    .stage-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.15);
+      transition: all var(--transition-normal);
+    }
+
+    .stage-dot.active {
+      background: var(--color-amber);
+      box-shadow: 0 0 6px rgba(255,170,0,0.4);
+    }
+
+    .stage-dot.done {
+      background: var(--color-green);
+    }
+
+    /* Form elements */
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    .form-label {
+      font-size: 11px;
+      color: var(--color-text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+      display: block;
+    }
+
+    .form-input {
+      width: 100%;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 8px;
+      color: var(--color-text);
+      font-family: var(--font-family);
+      font-size: 14px;
+      padding: 10px 14px;
+      outline: none;
+      transition: border-color 150ms ease;
+    }
+
+    .form-input:focus {
+      border-color: rgba(255,255,255,0.2);
+    }
+
+    .form-input::placeholder {
+      color: var(--color-text-dim);
+    }
+
+    textarea.form-input {
+      resize: vertical;
+      min-height: 60px;
+    }
+
+    /* Meeting type selector */
+    .type-selector {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .type-option {
+      padding: 8px 16px;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 20px;
+      font-size: 13px;
+      color: var(--color-text-muted);
+      cursor: pointer;
+      transition: all 150ms ease;
+      background: transparent;
+      font-family: var(--font-family);
+    }
+
+    .type-option:hover {
+      border-color: rgba(255,255,255,0.2);
+      color: var(--color-text);
+    }
+
+    .type-option.selected {
+      border-color: rgba(255,170,0,0.5);
+      color: var(--color-amber);
+      background: rgba(255,170,0,0.08);
+    }
+
+    /* Briefing card */
+    .briefing-section {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 10px;
+      padding: 16px;
+      margin-bottom: 12px;
+    }
+
+    .briefing-section h3 {
+      font-size: 12px;
+      color: var(--color-text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+    }
+
+    .briefing-section p,
+    .briefing-section li {
+      font-size: 14px;
+      line-height: 1.5;
+      color: var(--color-text);
+    }
+
+    .briefing-section ul {
+      list-style: none;
+      padding: 0;
+    }
+
+    .briefing-section li::before {
+      content: '\2022 ';
+      color: var(--color-amber);
+      margin-right: 6px;
+    }
+
+    .briefing-editable {
+      background: transparent;
+      border: none;
+      color: var(--color-text);
+      font-family: var(--font-family);
+      font-size: 14px;
+      line-height: 1.5;
+      width: 100%;
+      outline: none;
+      resize: none;
+      min-height: 40px;
+    }
+
+    /* Chat UI for rehearsal */
+    .chat-container {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding-bottom: 16px;
+      min-height: 0;
+    }
+
+    .chat-bubble {
+      max-width: 80%;
+      padding: 12px 16px;
+      border-radius: 14px;
+      font-size: 14px;
+      line-height: 1.5;
+      animation: fadeIn 200ms ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .chat-bubble.ai {
+      background: rgba(136,170,255,0.12);
+      border: 1px solid rgba(136,170,255,0.2);
+      align-self: flex-start;
+      border-bottom-left-radius: 4px;
+    }
+
+    .chat-bubble.user {
+      background: rgba(68,221,136,0.12);
+      border: 1px solid rgba(68,221,136,0.2);
+      align-self: flex-end;
+      border-bottom-right-radius: 4px;
+    }
+
+    .chat-bubble .role-label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+      display: block;
+    }
+
+    .chat-bubble.ai .role-label { color: var(--color-blue); }
+    .chat-bubble.user .role-label { color: var(--color-green); }
+
+    /* Coaching nudge */
+    .coaching-nudge {
+      position: fixed;
+      bottom: 100px;
+      right: 48px;
+      padding: 10px 18px;
+      border-radius: 10px;
+      font-size: 13px;
+      background: rgba(10,10,14,0.9);
+      border: 1px solid rgba(255,255,255,0.1);
+      transition: all 300ms ease;
+      opacity: 0;
+      transform: translateY(10px);
+      pointer-events: none;
+    }
+
+    .coaching-nudge.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* Rehearsal controls */
+    .rehearsal-controls {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 0;
+      flex-shrink: 0;
+    }
+
+    .mic-indicator {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #666;
+      transition: all 200ms ease;
+    }
+
+    .mic-indicator.listening {
+      background: var(--color-red);
+      box-shadow: 0 0 8px rgba(255,68,68,0.5);
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+
+    .timer {
+      font-size: 20px;
+      font-variant-numeric: tabular-nums;
+      color: var(--color-text-muted);
+      font-weight: 300;
+    }
+
+    .wpm-display {
       font-size: 12px;
       color: var(--color-text-dim);
+      font-variant-numeric: tabular-nums;
     }
-    .esc-hint {
-      margin-top: 40px;
+
+    /* Scorecard */
+    .scorecard-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .score-item {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 10px;
+      padding: 16px;
+      text-align: center;
+    }
+
+    .score-item .score-label {
       font-size: 11px;
+      color: var(--color-text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+    }
+
+    .score-item .score-value {
+      font-size: 32px;
+      font-weight: 300;
+    }
+
+    .score-item .score-max {
+      font-size: 14px;
       color: var(--color-text-dim);
     }
-    kbd {
-      background: rgba(255, 255, 255, 0.08);
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      border-radius: 4px;
-      padding: 2px 6px;
-      font-family: var(--font-mono);
-      font-size: 10px;
+
+    .feedback-box {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 10px;
+      padding: 16px;
+      margin-bottom: 12px;
     }
+
+    .feedback-box h3 {
+      font-size: 12px;
+      color: var(--color-text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+    }
+
+    .feedback-box p {
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    /* Transition stage */
+    .transition-center {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+
+    .transition-countdown {
+      font-size: 64px;
+      font-weight: 200;
+      color: var(--color-green);
+      margin: 24px 0;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .transition-message {
+      font-size: 18px;
+      color: var(--color-text-muted);
+      margin-bottom: 8px;
+    }
+
+    /* Loading spinner */
+    .loading {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--color-text-muted);
+      font-size: 13px;
+    }
+
+    .loading-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--color-text-muted);
+      animation: loadPulse 1.2s ease-in-out infinite;
+    }
+
+    .loading-dot:nth-child(2) { animation-delay: 0.2s; }
+    .loading-dot:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes loadPulse {
+      0%, 100% { opacity: 0.3; }
+      50% { opacity: 1; }
+    }
+
+    /* Score colors */
+    .score-1 { color: var(--color-red); }
+    .score-2 { color: #ff6b35; }
+    .score-3 { color: var(--color-amber); }
+    .score-4 { color: #88cc44; }
+    .score-5 { color: var(--color-green); }
   </style>
 </head>
 <body>
-  <div class="container">
-    <div class="mode-badge">Phase 4</div>
-    <h1 class="title">Pre-Meeting Prep</h1>
-    <p class="subtitle">Full 5-stage rehearsal flow coming in Phase 4</p>
-    <p class="hint">Context &rarr; Briefing &rarr; Rehearsal &rarr; Scorecard &rarr; Transition</p>
-    <p class="esc-hint">Press <kbd>Esc</kbd> or switch modes via tray to exit</p>
-  </div>
-  <script>
-    window.presence.onStateUpdate((state) => {
-      console.log('[Prep Fullscreen] State update received', state.activeMode);
-    });
+  <div class="app">
+    <!-- Header -->
+    <div class="header">
+      <div class="header-left">
+        <span class="app-title">Presence</span>
+        <span style="color: var(--color-text-dim);">&mdash;</span>
+        <span class="app-title" style="color: var(--color-amber);">Pre-Meeting Prep</span>
+      </div>
+      <span class="countdown" id="headerCountdown"></span>
+    </div>
 
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') {
-        window.presence.switchMode('coach');
+    <!-- ============================================ -->
+    <!-- STAGE 1: Context                             -->
+    <!-- ============================================ -->
+    <div class="stage active" id="stage1">
+      <h2 class="stage-title">Meeting Context</h2>
+      <p class="stage-subtitle">What are you preparing for?</p>
+
+      <div class="form-group">
+        <label class="form-label">Meeting Title</label>
+        <input type="text" class="form-input" id="meetingTitle" placeholder="e.g. Interview with Nan Yu">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Attendees</label>
+        <input type="text" class="form-input" id="meetingAttendees" placeholder="e.g. Nan Yu (Head of Product), Amelia (Recruiter)">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Description / Notes</label>
+        <textarea class="form-input" id="meetingDescription" rows="3" placeholder="Any context about the meeting..."></textarea>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Your Goals (what do you want to achieve?)</label>
+        <textarea class="form-input" id="meetingGoals" rows="3" placeholder="&#8226; Goal 1&#10;&#8226; Goal 2&#10;&#8226; Goal 3"></textarea>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Meeting Type</label>
+        <div class="type-selector" id="typeSelector">
+          <button class="type-option" data-type="interview">Interview</button>
+          <button class="type-option" data-type="sales-pitch">Sales / Pitch</button>
+          <button class="type-option" data-type="negotiation">Negotiation</button>
+          <button class="type-option" data-type="1-1-networking">1:1 Networking</button>
+          <button class="type-option selected" data-type="general">General</button>
+          <button class="type-option" data-type="custom">Custom</button>
+        </div>
+      </div>
+
+      <div class="form-group hidden" id="customScenarioGroup">
+        <label class="form-label">Custom Scenario</label>
+        <textarea class="form-input" id="customScenario" rows="2" placeholder="Describe the scenario..."></textarea>
+      </div>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- STAGE 2: Briefing                            -->
+    <!-- ============================================ -->
+    <div class="stage" id="stage2">
+      <h2 class="stage-title">Briefing</h2>
+      <p class="stage-subtitle">AI-generated prep based on your context. Edit anything before proceeding.</p>
+
+      <div id="briefingLoading" class="loading" style="margin: 40px auto;">
+        <div class="loading-dot"></div>
+        <div class="loading-dot"></div>
+        <div class="loading-dot"></div>
+        <span>Generating briefing...</span>
+      </div>
+
+      <div id="briefingContent" class="hidden">
+        <div class="briefing-section">
+          <h3>Who They Are</h3>
+          <textarea class="briefing-editable" id="briefingWho" rows="2"></textarea>
+        </div>
+
+        <div class="briefing-section">
+          <h3>What This Is About</h3>
+          <textarea class="briefing-editable" id="briefingWhat" rows="2"></textarea>
+        </div>
+
+        <div class="briefing-section">
+          <h3>Your Goals</h3>
+          <textarea class="briefing-editable" id="briefingGoals" rows="2"></textarea>
+        </div>
+
+        <div class="briefing-section">
+          <h3>Suggested Talking Points</h3>
+          <ul id="briefingTalkingPoints"></ul>
+        </div>
+      </div>
+
+      <div id="briefingError" class="hidden" style="color: var(--color-red); margin: 20px 0;">
+        <p id="briefingErrorMsg"></p>
+        <button class="btn" onclick="generateBriefing()" style="margin-top: 12px;">Retry</button>
+      </div>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- STAGE 3: Rehearsal                           -->
+    <!-- ============================================ -->
+    <div class="stage" id="stage3">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+        <div>
+          <h2 class="stage-title">Rehearsal</h2>
+          <p class="stage-subtitle">Practice your conversation. Speak naturally.</p>
+        </div>
+        <div style="text-align: right;">
+          <div class="timer" id="rehearsalTimer">0:00</div>
+          <div class="wpm-display" id="wpmDisplay">-- WPM</div>
+        </div>
+      </div>
+
+      <div class="chat-container" id="chatContainer"></div>
+
+      <div class="rehearsal-controls">
+        <div class="mic-indicator" id="micIndicator"></div>
+        <span id="micStatus" style="font-size: 12px; color: var(--color-text-dim);">Click Start to begin</span>
+        <div style="flex: 1;"></div>
+        <button class="btn btn-primary" id="startRehearsalBtn" onclick="toggleRehearsal()">Start Rehearsal</button>
+        <button class="btn btn-danger hidden" id="stopRehearsalBtn" onclick="toggleRehearsal()">End Rehearsal</button>
+      </div>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- STAGE 4: Scorecard                           -->
+    <!-- ============================================ -->
+    <div class="stage" id="stage4">
+      <h2 class="stage-title">Scorecard</h2>
+      <p class="stage-subtitle">How you did in rehearsal</p>
+
+      <div id="scorecardLoading" class="loading" style="margin: 40px auto;">
+        <div class="loading-dot"></div>
+        <div class="loading-dot"></div>
+        <div class="loading-dot"></div>
+        <span>Analyzing your performance...</span>
+      </div>
+
+      <div id="scorecardContent" class="hidden">
+        <div class="scorecard-grid">
+          <div class="score-item">
+            <div class="score-label">Clarity</div>
+            <div class="score-value" id="scoreClarity">-</div>
+            <div class="score-max">/ 5</div>
+          </div>
+          <div class="score-item">
+            <div class="score-label">Confidence</div>
+            <div class="score-value" id="scoreConfidence">-</div>
+            <div class="score-max">/ 5</div>
+          </div>
+          <div class="score-item">
+            <div class="score-label">Specificity</div>
+            <div class="score-value" id="scoreSpecificity">-</div>
+            <div class="score-max">/ 5</div>
+          </div>
+          <div class="score-item">
+            <div class="score-label">Pace</div>
+            <div class="score-value" id="scorePace">-</div>
+            <div class="score-max">/ 5</div>
+          </div>
+        </div>
+
+        <div class="feedback-box">
+          <h3>Opening</h3>
+          <p id="openingFeedback"></p>
+        </div>
+
+        <div class="feedback-box">
+          <h3>Top Things to Remember</h3>
+          <ul id="topReminders" style="list-style: none; padding: 0;"></ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- STAGE 5: Transition                          -->
+    <!-- ============================================ -->
+    <div class="stage" id="stage5">
+      <div class="transition-center">
+        <h2 class="stage-title" style="font-size: 20px; color: var(--color-green);">Ready to go.</h2>
+        <p class="transition-message">Switching to Meeting Coach with your cue cards...</p>
+        <div class="transition-countdown" id="transitionCountdown">10</div>
+        <button class="btn btn-primary" onclick="transitionNow()" style="margin-top: 16px;">Switch Now</button>
+        <button class="btn" onclick="cancelTransition()" style="margin-top: 8px;">Stay Here</button>
+      </div>
+    </div>
+
+    <!-- Coaching nudge overlay -->
+    <div class="coaching-nudge" id="coachingNudge"></div>
+
+    <!-- Footer -->
+    <div class="footer">
+      <button class="btn" id="backBtn" onclick="prevStage()" style="visibility: hidden;">Back</button>
+      <div class="stage-dots">
+        <div class="stage-dot active" data-stage="1"></div>
+        <div class="stage-dot" data-stage="2"></div>
+        <div class="stage-dot" data-stage="3"></div>
+        <div class="stage-dot" data-stage="4"></div>
+        <div class="stage-dot" data-stage="5"></div>
+      </div>
+      <button class="btn btn-primary" id="nextBtn" onclick="nextStage()">Next</button>
+    </div>
+  </div>
+  <!-- Scripts: engines + rehearsal engine -->
+  <script src="../../shared/audio-engine.js"></script>
+  <script src="../../shared/coaching-engine.js"></script>
+  <script src="./rehearsal-engine.js"></script>
+
+  <script>
+    // =============================================
+    // State
+    // =============================================
+    let currentStage = 1;
+    let selectedMeetingType = 'general';
+    let briefingData = null;
+    let talkingPoints = [];
+    let scorecardData = null;
+    let transitionTimer = null;
+    let transitionSeconds = 10;
+
+    // Engines
+    const rehearsalEngine = new RehearsalEngine();
+    let audioEngine = null;
+    let coachingEngine = null;
+    let isRehearsing = false;
+    let rehearsalStartTime = 0;
+    let rehearsalTimerInterval = null;
+
+    // Speech recognition
+    let recognition = null;
+    let currentTranscript = '';
+    let silenceTimer = null;
+
+    // =============================================
+    // Stage Navigation
+    // =============================================
+    function showStage(n) {
+      currentStage = n;
+      document.querySelectorAll('.stage').forEach(s => s.classList.remove('active'));
+      const stage = document.getElementById(`stage${n}`);
+      if (stage) stage.classList.add('active');
+
+      // Update dots
+      document.querySelectorAll('.stage-dot').forEach(dot => {
+        const s = parseInt(dot.dataset.stage);
+        dot.classList.remove('active', 'done');
+        if (s === n) dot.classList.add('active');
+        else if (s < n) dot.classList.add('done');
+      });
+
+      // Update nav buttons
+      const backBtn = document.getElementById('backBtn');
+      const nextBtn = document.getElementById('nextBtn');
+
+      backBtn.style.visibility = n > 1 ? 'visible' : 'hidden';
+
+      if (n === 3) {
+        nextBtn.textContent = 'Skip to Scorecard';
+        nextBtn.className = 'btn';
+      } else if (n === 4) {
+        nextBtn.textContent = 'Continue';
+        nextBtn.className = 'btn btn-primary';
+      } else if (n === 5) {
+        nextBtn.style.visibility = 'hidden';
+      } else {
+        nextBtn.textContent = 'Next';
+        nextBtn.className = 'btn btn-primary';
+        nextBtn.style.visibility = 'visible';
+      }
+
+      // Stage-specific actions
+      if (n === 2) generateBriefing();
+      if (n === 4) generateScorecard();
+      if (n === 5) startTransition();
+    }
+
+    function nextStage() {
+      if (currentStage === 3 && isRehearsing) {
+        stopRehearsal();
+      }
+      if (currentStage < 5) {
+        showStage(currentStage + 1);
+      }
+    }
+
+    function prevStage() {
+      if (currentStage === 3 && isRehearsing) {
+        stopRehearsal();
+      }
+      if (currentStage > 1) {
+        showStage(currentStage - 1);
+      }
+    }
+
+    // =============================================
+    // Stage 1: Context
+    // =============================================
+    function getContext() {
+      return {
+        title: document.getElementById('meetingTitle').value,
+        attendees: document.getElementById('meetingAttendees').value,
+        description: document.getElementById('meetingDescription').value,
+        goals: document.getElementById('meetingGoals').value,
+        meetingType: selectedMeetingType,
+        customScenario: document.getElementById('customScenario')?.value || ''
+      };
+    }
+
+    // Meeting type selector
+    document.getElementById('typeSelector').addEventListener('click', (e) => {
+      const btn = e.target.closest('.type-option');
+      if (!btn) return;
+
+      document.querySelectorAll('.type-option').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      selectedMeetingType = btn.dataset.type;
+
+      const customGroup = document.getElementById('customScenarioGroup');
+      if (selectedMeetingType === 'custom') {
+        customGroup.classList.remove('hidden');
+      } else {
+        customGroup.classList.add('hidden');
       }
     });
+
+    // =============================================
+    // Stage 2: Briefing
+    // =============================================
+    async function generateBriefing() {
+      const ctx = getContext();
+      rehearsalEngine.setup(ctx);
+
+      const loading = document.getElementById('briefingLoading');
+      const content = document.getElementById('briefingContent');
+      const errorDiv = document.getElementById('briefingError');
+
+      loading.classList.remove('hidden');
+      content.classList.add('hidden');
+      errorDiv.classList.add('hidden');
+
+      const result = await rehearsalEngine.generateBriefing(ctx);
+
+      loading.classList.add('hidden');
+
+      if (result.error) {
+        errorDiv.classList.remove('hidden');
+        document.getElementById('briefingErrorMsg').textContent = result.error;
+        return;
+      }
+
+      briefingData = result.briefing;
+      content.classList.remove('hidden');
+
+      document.getElementById('briefingWho').value = briefingData.whoTheyAre || '';
+      document.getElementById('briefingWhat').value = briefingData.whatAbout || '';
+      document.getElementById('briefingGoals').value = briefingData.yourGoals || '';
+
+      // Talking points
+      talkingPoints = briefingData.talkingPoints || [];
+      const tpList = document.getElementById('briefingTalkingPoints');
+      tpList.innerHTML = '';
+      talkingPoints.forEach((tp, i) => {
+        const li = document.createElement('li');
+        li.textContent = tp;
+        li.contentEditable = true;
+        li.addEventListener('blur', () => { talkingPoints[i] = li.textContent; });
+        tpList.appendChild(li);
+      });
+    }
+
+    // =============================================
+    // Stage 3: Rehearsal
+    // =============================================
+    function toggleRehearsal() {
+      if (isRehearsing) {
+        stopRehearsal();
+      } else {
+        startRehearsal();
+      }
+    }
+
+    async function startRehearsal() {
+      isRehearsing = true;
+      rehearsalStartTime = Date.now();
+
+      document.getElementById('startRehearsalBtn').classList.add('hidden');
+      document.getElementById('stopRehearsalBtn').classList.remove('hidden');
+      document.getElementById('micIndicator').classList.add('listening');
+      document.getElementById('micStatus').textContent = 'Listening...';
+
+      // Initialize engines
+      const ctx = getContext();
+      rehearsalEngine.setup(ctx);
+      rehearsalEngine.startRehearsal(selectedMeetingType);
+
+      coachingEngine = new CoachingEngine({
+        monologueWarnSec: 60,
+        encourageIntervalMin: 4
+      });
+
+      audioEngine = new AudioEngine({
+        sensitivity: 0.5,
+        onUpdate: (metrics) => {
+          // Update WPM display
+          document.getElementById('wpmDisplay').textContent = `${metrics.wpm} WPM`;
+
+          // Update coaching nudge
+          const nudge = coachingEngine.update(metrics);
+          const nudgeEl = document.getElementById('coachingNudge');
+          if (nudge) {
+            nudgeEl.textContent = nudge.message;
+            nudgeEl.style.borderColor = nudge.color;
+            nudgeEl.style.color = nudge.color;
+            nudgeEl.classList.add('visible');
+          } else {
+            nudgeEl.classList.remove('visible');
+          }
+        }
+      });
+
+      // Request mic permission and start audio
+      const micGranted = await window.presence.requestMicPermission();
+      if (micGranted) {
+        await audioEngine.start();
+      }
+
+      // Start timer
+      rehearsalTimerInterval = setInterval(updateRehearsalTimer, 1000);
+
+      // Start speech recognition
+      startSpeechRecognition();
+
+      // Generate AI opener
+      addChatBubble('ai', 'Thinking...');
+      const opener = await rehearsalEngine.generateOpener();
+      // Replace the "Thinking..." bubble
+      const lastBubble = document.querySelector('#chatContainer .chat-bubble:last-child');
+      if (lastBubble && opener.response) {
+        lastBubble.querySelector('.bubble-text').textContent = opener.response;
+      } else if (opener.error) {
+        if (lastBubble) {
+          lastBubble.querySelector('.bubble-text').textContent = '(AI unavailable — practice speaking anyway)';
+        }
+      }
+    }
+
+    function stopRehearsal() {
+      isRehearsing = false;
+
+      document.getElementById('startRehearsalBtn').classList.remove('hidden');
+      document.getElementById('stopRehearsalBtn').classList.add('hidden');
+      document.getElementById('micIndicator').classList.remove('listening');
+      document.getElementById('micStatus').textContent = 'Rehearsal ended';
+
+      if (rehearsalTimerInterval) {
+        clearInterval(rehearsalTimerInterval);
+        rehearsalTimerInterval = null;
+      }
+
+      if (audioEngine) {
+        audioEngine.stop();
+        audioEngine = null;
+      }
+
+      if (coachingEngine) {
+        coachingEngine.reset();
+        coachingEngine = null;
+      }
+
+      stopSpeechRecognition();
+
+      document.getElementById('coachingNudge').classList.remove('visible');
+    }
+
+    function updateRehearsalTimer() {
+      const elapsed = Math.floor((Date.now() - rehearsalStartTime) / 1000);
+      const min = Math.floor(elapsed / 60);
+      const sec = elapsed % 60;
+      document.getElementById('rehearsalTimer').textContent =
+        `${min}:${sec.toString().padStart(2, '0')}`;
+    }
+
+    function addChatBubble(role, text) {
+      const container = document.getElementById('chatContainer');
+      const bubble = document.createElement('div');
+      bubble.className = `chat-bubble ${role}`;
+      bubble.innerHTML = `<span class="role-label">${role === 'ai' ? 'Them' : 'You'}</span><span class="bubble-text">${escapeHtml(text)}</span>`;
+      container.appendChild(bubble);
+      container.scrollTop = container.scrollHeight;
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // =============================================
+    // Speech Recognition
+    // =============================================
+    function startSpeechRecognition() {
+      if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+        document.getElementById('micStatus').textContent = 'Speech recognition not available';
+        return;
+      }
+
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      recognition = new SpeechRecognition();
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = 'en-US';
+
+      currentTranscript = '';
+
+      recognition.onresult = (event) => {
+        let interim = '';
+        let final = '';
+
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const transcript = event.results[i][0].transcript;
+          if (event.results[i].isFinal) {
+            final += transcript;
+          } else {
+            interim += transcript;
+          }
+        }
+
+        if (final) {
+          currentTranscript += final;
+          // Reset silence timer
+          if (silenceTimer) clearTimeout(silenceTimer);
+          silenceTimer = setTimeout(() => processUserSpeech(), 2000);
+        }
+      };
+
+      recognition.onend = () => {
+        // Web Speech API auto-stops — restart if still rehearsing
+        if (isRehearsing) {
+          // Process any pending transcript first
+          if (currentTranscript.trim()) {
+            processUserSpeech();
+          }
+          try {
+            recognition.start();
+          } catch (e) {
+            // May fail if already started
+          }
+        }
+      };
+
+      recognition.onerror = (event) => {
+        if (event.error === 'no-speech' || event.error === 'aborted') return;
+        console.warn('[SpeechRecognition] Error:', event.error);
+      };
+
+      try {
+        recognition.start();
+      } catch (e) {
+        console.warn('[SpeechRecognition] Failed to start:', e);
+      }
+    }
+
+    function stopSpeechRecognition() {
+      if (silenceTimer) {
+        clearTimeout(silenceTimer);
+        silenceTimer = null;
+      }
+      if (recognition) {
+        try { recognition.stop(); } catch (e) {}
+        recognition = null;
+      }
+      // Process any remaining transcript
+      if (currentTranscript.trim()) {
+        processUserSpeech();
+      }
+    }
+
+    async function processUserSpeech() {
+      const text = currentTranscript.trim();
+      currentTranscript = '';
+      if (!text || !isRehearsing) return;
+
+      addChatBubble('user', text);
+
+      // Show thinking indicator
+      addChatBubble('ai', 'Thinking...');
+
+      const result = await rehearsalEngine.processUserTurn(text);
+
+      // Replace thinking bubble with response
+      const bubbles = document.querySelectorAll('#chatContainer .chat-bubble.ai');
+      const lastAiBubble = bubbles[bubbles.length - 1];
+      if (lastAiBubble && result.response) {
+        lastAiBubble.querySelector('.bubble-text').textContent = result.response;
+      } else if (lastAiBubble && result.error) {
+        lastAiBubble.querySelector('.bubble-text').textContent = '(Could not generate response)';
+      }
+    }
+
+    // =============================================
+    // Stage 4: Scorecard
+    // =============================================
+    async function generateScorecard() {
+      const loading = document.getElementById('scorecardLoading');
+      const content = document.getElementById('scorecardContent');
+
+      loading.classList.remove('hidden');
+      content.classList.add('hidden');
+
+      const result = await rehearsalEngine.generateScorecard();
+
+      loading.classList.add('hidden');
+
+      if (result.error) {
+        // Show a default scorecard on error
+        scorecardData = {
+          clarity: 3, confidence: 3, specificity: 3, pace: 3,
+          topReminders: ['AI scoring unavailable'], openingFeedback: 'Could not analyze session.',
+          date: new Date().toISOString(), meetingType: selectedMeetingType, exchangeCount: 0
+        };
+      } else {
+        scorecardData = result.scorecard;
+      }
+
+      content.classList.remove('hidden');
+      displayScorecard(scorecardData);
+
+      // Save scorecard and append to history in a single state update
+      window.presence.getState().then(state => {
+        const history = (state.prep && state.prep.history) || [];
+        history.push(scorecardData);
+        // Keep last 20 entries
+        if (history.length > 20) history.splice(0, history.length - 20);
+        window.presence.updateState({
+          prep: {
+            lastScorecard: scorecardData,
+            meetingType: selectedMeetingType,
+            history
+          }
+        });
+      });
+    }
+
+    function displayScorecard(sc) {
+      const metrics = ['clarity', 'confidence', 'specificity', 'pace'];
+      metrics.forEach(m => {
+        const el = document.getElementById(`score${m.charAt(0).toUpperCase() + m.slice(1)}`);
+        if (el) {
+          el.textContent = sc[m];
+          el.className = `score-value score-${sc[m]}`;
+        }
+      });
+
+      document.getElementById('openingFeedback').textContent = sc.openingFeedback || '';
+
+      const remindersList = document.getElementById('topReminders');
+      remindersList.innerHTML = '';
+      (sc.topReminders || []).forEach(r => {
+        const li = document.createElement('li');
+        li.textContent = r;
+        li.style.cssText = 'padding: 4px 0; font-size: 14px; line-height: 1.5;';
+        li.innerHTML = '<span style="color: var(--color-amber); margin-right: 8px;">&bull;</span>' + escapeHtml(r);
+        remindersList.appendChild(li);
+      });
+    }
+
+    // =============================================
+    // Stage 5: Transition
+    // =============================================
+    function startTransition() {
+      transitionSeconds = 10;
+      updateTransitionDisplay();
+
+      transitionTimer = setInterval(() => {
+        transitionSeconds--;
+        updateTransitionDisplay();
+        if (transitionSeconds <= 0) {
+          transitionNow();
+        }
+      }, 1000);
+    }
+
+    function updateTransitionDisplay() {
+      document.getElementById('transitionCountdown').textContent = transitionSeconds;
+    }
+
+    function transitionNow() {
+      if (transitionTimer) {
+        clearInterval(transitionTimer);
+        transitionTimer = null;
+      }
+
+      // Generate transition cards and load into coach mode
+      if (scorecardData) {
+        const { prepCards, checklist } = rehearsalEngine.generateTransitionCards(
+          scorecardData, talkingPoints
+        );
+
+        // Update coach state with generated cards
+        window.presence.updateState({
+          coach: {
+            prepCards: prepCards,
+            checklist: checklist,
+            prepContext: getContext().description || ''
+          }
+        });
+      }
+
+      // Switch to coach mode
+      window.presence.switchMode('coach');
+    }
+
+    function cancelTransition() {
+      if (transitionTimer) {
+        clearInterval(transitionTimer);
+        transitionTimer = null;
+      }
+      transitionSeconds = 10;
+      updateTransitionDisplay();
+    }
+
+    // =============================================
+    // Keyboard shortcuts
+    // =============================================
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        if (isRehearsing) {
+          stopRehearsal();
+        } else {
+          window.presence.switchMode('coach');
+        }
+      }
+
+      if (e.key === 'Enter' && !e.shiftKey) {
+        // Don't intercept Enter in textareas
+        if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') return;
+        nextStage();
+      }
+    });
+
+    // =============================================
+    // State sync
+    // =============================================
+    window.presence.onStateUpdate((state) => {
+      const prepState = state.prep || {};
+      if (prepState.meetingType && prepState.meetingType !== selectedMeetingType) {
+        selectedMeetingType = prepState.meetingType;
+        document.querySelectorAll('.type-option').forEach(btn => {
+          btn.classList.toggle('selected', btn.dataset.type === selectedMeetingType);
+        });
+      }
+    });
+
+    // Initialize
+    showStage(1);
   </script>
 </body>
 </html>
