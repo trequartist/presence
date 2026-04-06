@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    width: 100%; height: 100%;
+    background: transparent;
+    font-family: -apple-system, 'SF Pro Text', system-ui, sans-serif;
+    color: #e0e0e0;
+    overflow: hidden;
+  }
+
+  #panel {
+    margin: 8px;
+    background: rgba(30, 30, 34, 0.96);
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    height: calc(100% - 16px);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  }
+
+  /* Title bar */
+  #titlebar {
+    -webkit-app-region: drag;
+    padding: 12px 16px 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  #titlebar h1 { font-size: 13px; font-weight: 600; flex: 1; }
+  #session-time {
+    font-size: 11px; opacity: 0.4;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .divider {
+    height: 1px;
+    background: rgba(255,255,255,0.06);
+    margin: 0 16px;
+    flex-shrink: 0;
+  }
+
+  /* Session button */
+  #session-section {
+    padding: 12px 16px;
+    flex-shrink: 0;
+  }
+
+  #session-btn {
+    width: 100%;
+    padding: 10px;
+    border: none;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    -webkit-app-region: no-drag;
+    transition: background 0.2s;
+  }
+
+  #session-btn.start {
+    background: rgba(68, 221, 136, 0.2);
+    color: #44dd88;
+    border: 1px solid rgba(68, 221, 136, 0.3);
+  }
+  #session-btn.start:hover { background: rgba(68, 221, 136, 0.3); }
+
+  #session-btn.stop {
+    background: rgba(255, 68, 68, 0.2);
+    color: #ff4444;
+    border: 1px solid rgba(255, 68, 68, 0.3);
+  }
+  #session-btn.stop:hover { background: rgba(255, 68, 68, 0.3); }
+
+  /* Notes */
+  .section-label {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    opacity: 0.4;
+    padding: 10px 16px 4px;
+    flex-shrink: 0;
+  }
+
+  #notes-area {
+    padding: 0 16px 8px;
+    flex-shrink: 0;
+  }
+
+  textarea {
+    width: 100%;
+    height: 100px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 8px;
+    color: #e0e0e0;
+    font-family: -apple-system, 'SF Pro Text', system-ui, sans-serif;
+    font-size: 12px;
+    line-height: 1.5;
+    padding: 8px 10px;
+    resize: none;
+    outline: none;
+    -webkit-app-region: no-drag;
+  }
+  textarea:focus { border-color: rgba(100, 140, 255, 0.3); }
+
+  #prep-area textarea { height: 80px; }
+
+  /* Generate button */
+  #generate-btn {
+    width: 100%;
+    padding: 7px;
+    margin-top: 6px;
+    border: 1px solid rgba(136, 170, 255, 0.2);
+    border-radius: 7px;
+    background: rgba(136, 170, 255, 0.1);
+    color: #88aaff;
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    -webkit-app-region: no-drag;
+  }
+  #generate-btn:hover { background: rgba(136, 170, 255, 0.2); }
+  #generate-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* Sliders */
+  #controls { padding: 4px 16px 8px; flex-shrink: 0; }
+
+  .slider-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+
+  .slider-row .label {
+    font-size: 10px;
+    opacity: 0.4;
+    width: 70px;
+  }
+
+  .slider-row input[type="range"] {
+    flex: 1;
+    height: 4px;
+    -webkit-appearance: none;
+    background: rgba(255,255,255,0.1);
+    border-radius: 2px;
+    outline: none;
+    -webkit-app-region: no-drag;
+  }
+
+  .slider-row input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: #648cff;
+    cursor: pointer;
+  }
+
+  .slider-row .value {
+    font-size: 10px;
+    opacity: 0.4;
+    width: 36px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Summary card */
+  #summary-card {
+    display: none;
+    margin: 8px 16px;
+    padding: 12px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 8px;
+    flex-shrink: 0;
+  }
+
+  #summary-card.visible { display: block; }
+
+  #summary-card h3 {
+    font-size: 11px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    opacity: 0.6;
+  }
+
+  .summary-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+
+  .summary-item {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .summary-val {
+    font-size: 18px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .summary-label {
+    font-size: 9px;
+    opacity: 0.4;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  /* Shortcuts + quit */
+  #footer {
+    padding: 8px 16px 10px;
+    flex-shrink: 0;
+  }
+
+  #shortcuts {
+    font-size: 10px;
+    opacity: 0.3;
+    display: flex;
+    gap: 12px;
+    margin-bottom: 8px;
+  }
+
+  #quit-btn {
+    width: 100%;
+    background: transparent;
+    border: none;
+    color: rgba(255,255,255,0.3);
+    font-family: inherit;
+    font-size: 11px;
+    padding: 4px;
+    cursor: pointer;
+    -webkit-app-region: no-drag;
+  }
+  #quit-btn:hover { color: rgba(255,100,100,0.6); }
+</style>
+</head>
+<body>
+  <div id="panel">
+    <div id="titlebar">
+      <h1>MeetingCoach</h1>
+      <span id="session-time"></span>
+    </div>
+
+    <div class="divider"></div>
+
+    <div id="session-section">
+      <button id="session-btn" class="start">Start Session</button>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="section-label">Talking Points</div>
+    <div id="notes-area">
+      <textarea id="notes" placeholder="Key things to remember..."></textarea>
+    </div>
+
+    <div class="section-label">Prep Context (for AI cards)</div>
+    <div id="prep-area">
+      <textarea id="prep-context" placeholder="Paste interview prep, company research, or meeting notes..."></textarea>
+      <button id="generate-btn">Generate Cue Cards</button>
+    </div>
+
+    <div class="divider" style="margin-top:8px"></div>
+
+    <div class="section-label">Settings</div>
+    <div id="controls">
+      <div class="slider-row">
+        <span class="label">Sensitivity</span>
+        <input type="range" id="sensitivity" min="0.1" max="1" step="0.05" value="0.5">
+        <span class="value" id="sensitivity-val">0.50</span>
+      </div>
+      <div class="slider-row">
+        <span class="label">Monologue</span>
+        <input type="range" id="monologue" min="30" max="120" step="5" value="60">
+        <span class="value" id="monologue-val">60s</span>
+      </div>
+      <div class="slider-row">
+        <span class="label">Encourage</span>
+        <input type="range" id="encourage" min="2" max="10" step="1" value="4">
+        <span class="value" id="encourage-val">4min</span>
+      </div>
+    </div>
+
+    <div id="summary-card">
+      <h3>Last Session</h3>
+      <div class="summary-grid">
+        <div class="summary-item">
+          <span class="summary-val" id="sum-duration">--</span>
+          <span class="summary-label">Duration</span>
+        </div>
+        <div class="summary-item">
+          <span class="summary-val" id="sum-avg-wpm">--</span>
+          <span class="summary-label">Avg WPM</span>
+        </div>
+        <div class="summary-item">
+          <span class="summary-val" id="sum-peak-wpm">--</span>
+          <span class="summary-label">Peak WPM</span>
+        </div>
+        <div class="summary-item">
+          <span class="summary-val" id="sum-talk">--</span>
+          <span class="summary-label">Talk %</span>
+        </div>
+      </div>
+    </div>
+
+    <div style="flex:1"></div>
+
+    <div class="divider"></div>
+
+    <div id="footer">
+      <div id="shortcuts">
+        <span>Toggle: \u2318\u21E7M</span>
+        <span>Lifeline: \u2318\u21E7L</span>
+        <span>Cards: \u2318\u2190\u2192</span>
+      </div>
+      <button id="quit-btn">Quit MeetingCoach</button>
+    </div>
+  </div>
+
+  <script>
+    // DOM refs
+    const sessionBtn = document.getElementById('session-btn');
+    const sessionTime = document.getElementById('session-time');
+    const notesEl = document.getElementById('notes');
+    const prepContextEl = document.getElementById('prep-context');
+    const generateBtn = document.getElementById('generate-btn');
+    const sensitivityEl = document.getElementById('sensitivity');
+    const monologueEl = document.getElementById('monologue');
+    const encourageEl = document.getElementById('encourage');
+    const sensitivityVal = document.getElementById('sensitivity-val');
+    const monologueVal = document.getElementById('monologue-val');
+    const encourageVal = document.getElementById('encourage-val');
+    const summaryCard = document.getElementById('summary-card');
+    const quitBtn = document.getElementById('quit-btn');
+
+    let state = {
+      notes: '',
+      sensitivity: 0.5,
+      monologueWarnSec: 60,
+      encourageIntervalMin: 4,
+      prepContext: '',
+      lastSummary: null
+    };
+    let isSessionActive = false;
+
+    function updateUI() {
+      notesEl.value = state.notes || '';
+      prepContextEl.value = state.prepContext || '';
+      sensitivityEl.value = state.sensitivity || 0.5;
+      monologueEl.value = state.monologueWarnSec || 60;
+      encourageEl.value = state.encourageIntervalMin || 4;
+      sensitivityVal.textContent = (state.sensitivity || 0.5).toFixed(2);
+      monologueVal.textContent = (state.monologueWarnSec || 60) + 's';
+      encourageVal.textContent = (state.encourageIntervalMin || 4) + 'min';
+
+      sessionBtn.textContent = isSessionActive ? 'Stop Session' : 'Start Session';
+      sessionBtn.className = isSessionActive ? 'stop' : 'start';
+
+      if (state.lastSummary) {
+        showSummary(state.lastSummary);
+      }
+    }
+
+    function sendState(partial) {
+      state = { ...state, ...partial };
+      updateUI();
+      try { window.coach.updateState(partial); } catch(e) { console.error('bridge:', e); }
+    }
+
+    // Input handlers
+    notesEl.addEventListener('input', () => sendState({ notes: notesEl.value }));
+    prepContextEl.addEventListener('input', () => sendState({ prepContext: prepContextEl.value }));
+
+    sensitivityEl.addEventListener('input', () => {
+      sendState({ sensitivity: parseFloat(sensitivityEl.value) });
+    });
+    monologueEl.addEventListener('input', () => {
+      sendState({ monologueWarnSec: parseInt(monologueEl.value) });
+    });
+    encourageEl.addEventListener('input', () => {
+      sendState({ encourageIntervalMin: parseInt(encourageEl.value) });
+    });
+
+    // Session toggle
+    sessionBtn.addEventListener('click', () => {
+      if (isSessionActive) {
+        window.coach.stopSession();
+        isSessionActive = false;
+      } else {
+        window.coach.startSession();
+        isSessionActive = true;
+      }
+      updateUI();
+    });
+
+    // Generate cue cards
+    generateBtn.addEventListener('click', async () => {
+      const context = prepContextEl.value.trim();
+      if (!context) return;
+
+      generateBtn.disabled = true;
+      generateBtn.textContent = 'Generating...';
+
+      try {
+        const result = await generateCards(context);
+        sendState({ prepCards: result.cards, checklist: result.checklist });
+        generateBtn.textContent = 'Cards generated! (' + result.cards.length + ')';
+        setTimeout(() => {
+          generateBtn.textContent = 'Regenerate Cue Cards';
+          generateBtn.disabled = false;
+        }, 3000);
+      } catch (e) {
+        console.error('Card generation failed:', e);
+        generateBtn.textContent = 'Failed \u2014 try again';
+        generateBtn.disabled = false;
+      }
+    });
+
+    async function generateCards(context) {
+      const prompt = `You are a meeting prep assistant. Given the following meeting prep context, generate:
+
+1. "cards" - An array of 8-10 cue cards. Each card has:
+   - "title": short category (e.g., "Quick Facts", "Theme: Speed", "Danger Zone", "Questions to Ask", "Your Angle")
+   - "body": 2-3 lines of bullet points (very concise, glanceable during a call)
+
+2. "checklist" - An array of 6-8 topic items to track during conversation. Each has:
+   - "label": short topic name (2-3 words)
+   - "checked": false
+
+Return ONLY valid JSON with keys "cards" and "checklist". No markdown, no explanation.
+
+Meeting prep context:
+${context.slice(0, 6000)}`;
+
+      const geminiKey = 'AIzaSyAIVa0lh4praAW93I1rIA0y53wVf9Km55I';
+      const resp = await fetch(
+        'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + geminiKey,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: { maxOutputTokens: 2048, temperature: 0.3 }
+          })
+        }
+      );
+
+      const data = await resp.json();
+      let text = data.candidates[0].content.parts[0].text;
+      // Strip markdown code fences if present
+      text = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      return JSON.parse(text);
+    }
+
+    // Summary display
+    function showSummary(summary) {
+      const m = Math.floor(summary.durationSec / 60);
+      const s = summary.durationSec % 60;
+      document.getElementById('sum-duration').textContent = m + ':' + String(s).padStart(2, '0');
+      document.getElementById('sum-avg-wpm').textContent = summary.avgWpm;
+      document.getElementById('sum-peak-wpm').textContent = summary.peakWpm;
+      document.getElementById('sum-talk').textContent = summary.talkPercent + '%';
+      summaryCard.classList.add('visible');
+    }
+
+    // Quit
+    quitBtn.addEventListener('click', () => {
+      try { window.coach.quit(); } catch(e) { window.close(); }
+    });
+
+    // IPC
+    window.coach.onStateUpdate((newState) => {
+      state = { ...state, ...newState };
+      updateUI();
+    });
+
+    window.coach.onSessionSummary((summary) => {
+      isSessionActive = false;
+      state.lastSummary = summary;
+      updateUI();
+    });
+  </script>
+</body>
+</html>

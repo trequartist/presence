@@ -1,0 +1,15 @@
+{
+  "name": "presence",
+  "version": "0.1.0",
+  "description": "Unified macOS menubar app: Meeting Coach + Smart Teleprompter + Pre-Meeting Prep",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "unset ELECTRON_RUN_AS_NODE && electron .",
+    "dev": "unset ELECTRON_RUN_AS_NODE && ELECTRON_ENABLE_LOGGING=1 electron ."
+  },
+  "dependencies": {
+    "electron": "^41.0.2"
+  },
+  "author": "Anish",
+  "license": "MIT"
+}

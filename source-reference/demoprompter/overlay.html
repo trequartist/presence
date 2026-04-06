@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: transparent;
+    -webkit-app-region: drag;
+    user-select: none;
+    cursor: grab;
+  }
+
+  body:active { cursor: grabbing; }
+
+  #container {
+    width: 100%;
+    height: 100%;
+    border-radius: 14px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  #bg {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.82);
+    border-radius: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  #text-wrapper {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    border-radius: 14px;
+  }
+
+  #text {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    padding: 20px;
+    font-family: -apple-system, 'SF Pro Rounded', 'SF Pro Display', system-ui, sans-serif;
+    font-size: 22px;
+    font-weight: 500;
+    color: white;
+    line-height: 1.5;
+    letter-spacing: 0.01em;
+    transition: none;
+  }
+
+  /* Top and bottom fade */
+  #fade-top, #fade-bottom {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 20px;
+    z-index: 10;
+    pointer-events: none;
+    border-radius: 14px;
+  }
+
+  #fade-top {
+    top: 0;
+    background: linear-gradient(to bottom, rgba(0,0,0,0.6), transparent);
+  }
+
+  #fade-bottom {
+    bottom: 0;
+    background: linear-gradient(to top, rgba(0,0,0,0.6), transparent);
+  }
+
+  /* Resize handle */
+  #resize-handle {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 16px;
+    height: 16px;
+    cursor: se-resize;
+    -webkit-app-region: no-drag;
+    z-index: 20;
+    opacity: 0.3;
+  }
+
+  #resize-handle::after {
+    content: '';
+    position: absolute;
+    bottom: 4px;
+    right: 4px;
+    width: 8px;
+    height: 8px;
+    border-right: 2px solid rgba(255,255,255,0.5);
+    border-bottom: 2px solid rgba(255,255,255,0.5);
+  }
+</style>
+</head>
+<body>
+  <div id="container">
+    <div id="bg"></div>
+    <div id="text-wrapper">
+      <div id="fade-top"></div>
+      <div id="text"></div>
+      <div id="fade-bottom"></div>
+    </div>
+    <div id="resize-handle"></div>
+  </div>
+
+  <script>
+    const textEl = document.getElementById('text');
+    const bgEl = document.getElementById('bg');
+
+    let state = {
+      text: '',
+      speed: 1.5,
+      fontSize: 22,
+      opacity: 0.82,
+      isScrolling: false,
+      scrollOffset: 0
+    };
+
+    let animFrame = null;
+    let lastTime = 0;
+
+    function render() {
+      textEl.textContent = state.text;
+      textEl.style.fontSize = state.fontSize + 'px';
+      textEl.style.transform = `translateY(${-state.scrollOffset}px)`;
+      bgEl.style.background = `rgba(0, 0, 0, ${state.opacity})`;
+    }
+
+    function tick(time) {
+      if (!lastTime) lastTime = time;
+      const dt = (time - lastTime) / 1000; // seconds
+      lastTime = time;
+
+      if (state.isScrolling) {
+        // speed = pixels per second (speed * 30 to feel natural)
+        state.scrollOffset += state.speed * 30 * dt;
+
+        // Stop at end
+        const maxScroll = textEl.scrollHeight - window.innerHeight + 40;
+        if (state.scrollOffset > maxScroll) {
+          state.scrollOffset = maxScroll;
+          state.isScrolling = false;
+        }
+
+        textEl.style.transform = `translateY(${-state.scrollOffset}px)`;
+      }
+
+      animFrame = requestAnimationFrame(tick);
+    }
+
+    animFrame = requestAnimationFrame(tick);
+
+    window.prompter.onStateUpdate((newState) => {
+      const wasScrolling = state.isScrolling;
+      state = { ...state, ...newState };
+      render();
+    });
+  </script>
+</body>
+</html>

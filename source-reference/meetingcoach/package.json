@@ -1,0 +1,11 @@
+{
+  "name": "meeting-coach",
+  "version": "1.0.0",
+  "main": "main.js",
+  "scripts": {
+    "start": "unset ELECTRON_RUN_AS_NODE && electron ."
+  },
+  "dependencies": {
+    "electron": "^41.0.2"
+  }
+}
