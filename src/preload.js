@@ -40,7 +40,7 @@ contextBridge.exposeInMainWorld('presence', {
   generateCards: (context) => ipcRenderer.invoke('generate-cards', context),
 
   // --- Calendar (optional) ---
-  getUpcomingMeetings: () => ipcRenderer.invoke('get-upcoming-meetings'),
+  getUpcomingMeetings: (withinMinutes) => ipcRenderer.invoke('get-upcoming-meetings', withinMinutes),
   getMeetingContext: (id) => ipcRenderer.invoke('get-meeting-context', id),
 
   // --- Audio ---
