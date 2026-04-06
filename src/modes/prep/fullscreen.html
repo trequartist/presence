@@ -839,9 +839,7 @@
       document.getElementById('micIndicator').classList.add('listening');
       document.getElementById('micStatus').textContent = 'Listening...';
 
-      // Initialize engines
-      const ctx = getContext();
-      rehearsalEngine.setup(ctx);
+      // Start rehearsal (context was already set up in generateBriefing via setup())
       rehearsalEngine.startRehearsal(selectedMeetingType);
 
       coachingEngine = new CoachingEngine({
@@ -879,6 +877,7 @@
         document.getElementById('micIndicator').classList.remove('listening');
         document.getElementById('micStatus').textContent = 'Microphone access denied. Grant permission and try again.';
         document.getElementById('micStatus').style.color = 'var(--color-red)';
+        audioEngine = null;
         if (coachingEngine) { coachingEngine.reset(); coachingEngine = null; }
         return;
       }
@@ -891,6 +890,7 @@
         document.getElementById('micIndicator').classList.remove('listening');
         document.getElementById('micStatus').textContent = 'Could not access microphone. Check permissions.';
         document.getElementById('micStatus').style.color = 'var(--color-red)';
+        audioEngine = null;
         if (coachingEngine) { coachingEngine.reset(); coachingEngine = null; }
         return;
       }
@@ -1232,6 +1232,25 @@
         });
       }
     });
+
+    // Update header countdown with meeting context
+    function updateHeaderCountdown() {
+      const title = document.getElementById('meetingTitle').value;
+      const attendees = document.getElementById('meetingAttendees').value;
+      const el = document.getElementById('headerCountdown');
+      if (title || attendees) {
+        const parts = [];
+        if (title) parts.push(title);
+        if (attendees) parts.push('with ' + attendees.split(',')[0].trim());
+        el.textContent = parts.join(' ');
+      } else {
+        el.textContent = '';
+      }
+    }
+
+    // Listen for context field changes
+    document.getElementById('meetingTitle').addEventListener('input', updateHeaderCountdown);
+    document.getElementById('meetingAttendees').addEventListener('input', updateHeaderCountdown);
 
     // Initialize
     showStage(1);
