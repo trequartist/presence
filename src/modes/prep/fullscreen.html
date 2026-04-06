@@ -839,7 +839,8 @@
       document.getElementById('micIndicator').classList.add('listening');
       document.getElementById('micStatus').textContent = 'Listening...';
 
-      // Start rehearsal (context was already set up in generateBriefing via setup())
+      // Re-apply context in case user edited Stage 1 after briefing
+      rehearsalEngine.setup(getContext());
       rehearsalEngine.startRehearsal(selectedMeetingType);
 
       coachingEngine = new CoachingEngine({
