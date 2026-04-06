@@ -324,6 +324,16 @@ EVENT_END`;
     assert.strictEqual(r2.meetings.length, 2); // Both meetings returned
   });
 
+  await testAsync('getMeetingContext returns specific error for EVENT_NOT_FOUND', async () => {
+    const bridge = new CalendarBridge();
+    bridge._isMacOS = true;
+    bridge._runOsascript = async () => 'EVENT_NOT_FOUND';
+
+    const result = await bridge.getMeetingContext('nonexistent-id');
+    assert.strictEqual(result.context, null);
+    assert.strictEqual(result.error, 'Event not found in any calendar');
+  });
+
   // --- clearCache ---
 
   test('clearCache resets cache', () => {
