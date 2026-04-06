@@ -45,6 +45,7 @@ test('constructor initializes empty cache', () => {
   const bridge = new CalendarBridge();
   assert.strictEqual(bridge._cache.meetings.length, 0);
   assert.strictEqual(bridge._cache.fetchedAt, 0);
+  assert.strictEqual(bridge._cache.windowMinutes, 0);
 });
 
 // --- inferMeetingType ---
@@ -327,10 +328,11 @@ EVENT_END`;
 
   test('clearCache resets cache', () => {
     const bridge = new CalendarBridge();
-    bridge._cache = { meetings: [{ id: '1' }], fetchedAt: Date.now() };
+    bridge._cache = { meetings: [{ id: '1' }], fetchedAt: Date.now(), windowMinutes: 90 };
     bridge.clearCache();
     assert.strictEqual(bridge._cache.meetings.length, 0);
     assert.strictEqual(bridge._cache.fetchedAt, 0);
+    assert.strictEqual(bridge._cache.windowMinutes, 0);
   });
 
   // --- getNextMeeting sort safety ---
@@ -348,6 +350,52 @@ EVENT_END`;
     assert.strictEqual(result.meeting.id, '1'); // Sooner
     // Original array should not be mutated
     assert.strictEqual(meetings[0].id, '2'); // Still in original order
+  });
+
+  // --- withinMinutes coercion ---
+
+  await testAsync('getUpcomingMeetings coerces withinMinutes=0 to 60', async () => {
+    const bridge = new CalendarBridge();
+    bridge._isMacOS = true;
+    const now = Date.now();
+    let capturedWindow = null;
+    bridge._runOsascript = async (script) => {
+      const match = script.match(/set endTime to now \+ (\d+) \* minutes/);
+      capturedWindow = match ? parseInt(match[1]) : null;
+      return '';
+    };
+    await bridge.getUpcomingMeetings(0);
+    assert.strictEqual(capturedWindow, 60, 'withinMinutes=0 should be coerced to 60 via parseInt(0)||60');
+  });
+
+  // --- Cache serves narrower window from larger cached window ---
+
+  await testAsync('cache hit: 90-min cache serves a 60-min request without re-fetching', async () => {
+    const bridge = new CalendarBridge();
+    bridge._isMacOS = true;
+    const now = Date.now();
+    let callCount = 0;
+    const t10 = new Date(now + 10 * 60000).toISOString();
+    const t70 = new Date(now + 70 * 60000).toISOString();
+
+    bridge._runOsascript = async () => {
+      callCount++;
+      return [
+        `EVENT_START\nID|||m10\nTITLE|||10-Min\nSTART|||${t10}\nEND|||${t10}\nDESC|||\nLOCATION|||\nATTENDEES|||\nEVENT_END`,
+        `EVENT_START\nID|||m70\nTITLE|||70-Min\nSTART|||${t70}\nEND|||${t70}\nDESC|||\nLOCATION|||\nATTENDEES|||\nEVENT_END`
+      ].join('\n');
+    };
+
+    // First call: 90-min window — fetches and caches 90 min of data
+    const r1 = await bridge.getUpcomingMeetings(90);
+    assert.strictEqual(callCount, 1);
+    assert.strictEqual(r1.meetings.length, 2);
+
+    // Second call: 60-min window — cache covers it (windowMinutes=90 >= 60), no re-fetch
+    const r2 = await bridge.getUpcomingMeetings(60);
+    assert.strictEqual(callCount, 1, 'Should be cache hit — no re-fetch needed');
+    assert.strictEqual(r2.meetings.length, 1, '_filterByWindow(60) applied to cached 90-min data');
+    assert.strictEqual(r2.meetings[0].id, 'm10', 'Only the 10-min meeting is within 60-min window');
   });
 
   // --- Summary ---

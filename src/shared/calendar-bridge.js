@@ -75,6 +75,9 @@ class CalendarBridge {
     try {
       const script = this._buildDetailScript(eventId);
       const output = await this._runOsascript(script);
+      if (output.trim() === 'EVENT_NOT_FOUND') {
+        return { context: null, error: 'Event not found in any calendar' };
+      }
       const context = this._parseDetailOutput(output);
       return { context, error: null };
     } catch (err) {
@@ -258,7 +261,7 @@ class CalendarBridge {
         end repeat
       end tell
 
-      return output
+      return "EVENT_NOT_FOUND"
     `;
   }
 
