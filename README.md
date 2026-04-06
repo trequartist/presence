@@ -83,10 +83,10 @@ presence/
 
 | Phase | Description | Status |
 |-------|-------------|--------|
-| 0 | Scaffolding & repo setup | Not started |
-| 1 | Shared infrastructure | Not started |
-| 2 | Meeting Coach mode (port) | Not started |
-| 3 | Smart Teleprompter mode (port + voice tracking) | Not started |
+| 0 | Scaffolding & repo setup | Complete |
+| 1 | Shared infrastructure | Complete |
+| 2 | Meeting Coach mode (port) | In progress |
+| 3 | Smart Teleprompter mode (port + voice tracking) | In progress |
 | 4 | Pre-Meeting Prep mode (new build) | Not started |
 | 5 | Calendar integration | Not started |
 | 6 | Polish & packaging | Not started |
