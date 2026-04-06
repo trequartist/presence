@@ -294,6 +294,35 @@ EVENT_END`;
     assert.strictEqual(result2.meetings.length, 1);
   });
 
+  await testAsync('cache is invalidated when requested window exceeds cached window', async () => {
+    const bridge = new CalendarBridge();
+    bridge._isMacOS = true;
+
+    const meeting15min = new Date(Date.now() + 10 * 60000).toISOString();
+    const meeting70min = new Date(Date.now() + 70 * 60000).toISOString();
+    let callCount = 0;
+
+    bridge._runOsascript = async (script) => {
+      callCount++;
+      // First call (60-min window) returns only the 15-min meeting
+      if (callCount === 1) {
+        return `EVENT_START\nID|||m1\nTITLE|||Soon\nSTART|||${meeting15min}\nEND|||${meeting15min}\nDESC|||\nLOCATION|||\nATTENDEES|||\nEVENT_END`;
+      }
+      // Second call (90-min window) returns both meetings
+      return `EVENT_START\nID|||m1\nTITLE|||Soon\nSTART|||${meeting15min}\nEND|||${meeting15min}\nDESC|||\nLOCATION|||\nATTENDEES|||\nEVENT_END\nEVENT_START\nID|||m2\nTITLE|||Later\nSTART|||${meeting70min}\nEND|||${meeting70min}\nDESC|||\nLOCATION|||\nATTENDEES|||\nEVENT_END`;
+    };
+
+    // First call: 60-min window (fetches 60 min of data)
+    const r1 = await bridge.getUpcomingMeetings(60);
+    assert.strictEqual(callCount, 1);
+    assert.strictEqual(r1.meetings.length, 1);
+
+    // Second call: 90-min window — should NOT use cache (window too small)
+    const r2 = await bridge.getUpcomingMeetings(90);
+    assert.strictEqual(callCount, 2); // Must re-fetch
+    assert.strictEqual(r2.meetings.length, 2); // Both meetings returned
+  });
+
   // --- clearCache ---
 
   test('clearCache resets cache', () => {

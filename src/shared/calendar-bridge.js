@@ -12,7 +12,7 @@ const os = require('os');
 class CalendarBridge {
   constructor() {
     this._isMacOS = os.platform() === 'darwin';
-    this._cache = { meetings: [], fetchedAt: 0 };
+    this._cache = { meetings: [], fetchedAt: 0, windowMinutes: 0 };
     this._cacheTTLMs = 30000; // 30 seconds
   }
 
@@ -40,8 +40,10 @@ class CalendarBridge {
     // from macOS system timezone, comparisons may be off.
     const now = Date.now();
 
-    // Return cached results if fresh (empty results are valid cache entries)
-    if (this._cache.fetchedAt > 0 && now - this._cache.fetchedAt < this._cacheTTLMs) {
+    // Return cached results if fresh AND the cache covers the requested window
+    if (this._cache.fetchedAt > 0
+        && now - this._cache.fetchedAt < this._cacheTTLMs
+        && this._cache.windowMinutes >= withinMinutes) {
       return { meetings: this._filterByWindow(this._cache.meetings, withinMinutes, now), error: null };
     }
 
@@ -52,7 +54,7 @@ class CalendarBridge {
       const output = await this._runOsascript(script);
       const allMeetings = this._parseUpcomingOutput(output);
 
-      this._cache = { meetings: allMeetings, fetchedAt: now };
+      this._cache = { meetings: allMeetings, fetchedAt: now, windowMinutes: fetchWindow };
 
       return { meetings: this._filterByWindow(allMeetings, withinMinutes, now), error: null };
     } catch (err) {
@@ -357,7 +359,7 @@ class CalendarBridge {
    * Clear the meeting cache (useful after state changes).
    */
   clearCache() {
-    this._cache = { meetings: [], fetchedAt: 0 };
+    this._cache = { meetings: [], fetchedAt: 0, windowMinutes: 0 };
   }
 }
 
