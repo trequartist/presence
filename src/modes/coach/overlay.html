@@ -370,6 +370,8 @@
     let coachingEngine = null;
     let sessionActive = false;
     let currentCardIndex = 0;
+    let lastRenderedCardsJson = '';
+    let lastRenderedChecklistJson = '';
 
     // === Format time ===
     function formatTime(sec) {
@@ -427,12 +429,14 @@
       const micOk = await window.presence.requestMicPermission();
       if (!micOk) {
         notRunningEl.textContent = 'Mic access denied \u2014 grant in System Settings > Privacy > Microphone';
+        window.presence.sendSessionFailed('mic_denied');
         return;
       }
 
       const started = await audioEngine.start();
       if (!started) {
         notRunningEl.textContent = 'Could not access microphone';
+        window.presence.sendSessionFailed('mic_unavailable');
         return;
       }
 
@@ -472,6 +476,11 @@
 
     // === Cards ===
     function renderCards(cards) {
+      // Skip re-render if cards haven't changed
+      const cardsJson = JSON.stringify(cards);
+      if (cardsJson === lastRenderedCardsJson) return;
+      lastRenderedCardsJson = cardsJson;
+
       cardsRow.innerHTML = '';
       cards.forEach((card, i) => {
         const el = document.createElement('div');
@@ -504,6 +513,11 @@
 
     // === Checklist ===
     function renderChecklist(items) {
+      // Skip re-render if checklist hasn't changed (prevents loop from persistence)
+      const checklistJson = JSON.stringify(items);
+      if (checklistJson === lastRenderedChecklistJson) return;
+      lastRenderedChecklistJson = checklistJson;
+
       checklistRow.innerHTML = '';
       items.forEach((item, i) => {
         const chip = document.createElement('div');
@@ -512,6 +526,8 @@
         chip.addEventListener('click', () => {
           item.checked = !item.checked;
           chip.classList.toggle('checked');
+          // Persist checklist state back to state manager
+          window.presence.updateState({ coach: { checklist: items } });
         });
         checklistRow.appendChild(chip);
       });
@@ -577,10 +593,10 @@
     });
 
     // === Escape HTML ===
+    const _escapeDiv = document.createElement('div');
     function escapeHtml(str) {
-      const div = document.createElement('div');
-      div.textContent = str;
-      return div.innerHTML;
+      _escapeDiv.textContent = str;
+      return _escapeDiv.innerHTML;
     }
 
     // === IPC ===

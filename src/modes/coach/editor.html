@@ -361,8 +361,13 @@
     let isSessionActive = false;
 
     function updateUI() {
-      notesEl.value = state.notes || '';
-      prepContextEl.value = state.prepContext || '';
+      // Only update textareas if value actually changed (prevents cursor jump
+      // when state manager broadcasts our own update back to us)
+      const notes = state.notes || '';
+      const prepContext = state.prepContext || '';
+      if (notesEl.value !== notes) notesEl.value = notes;
+      if (prepContextEl.value !== prepContext) prepContextEl.value = prepContext;
+
       sensitivityEl.value = state.sensitivity || 0.5;
       monologueEl.value = state.monologueWarnSec || 60;
       encourageEl.value = state.encourageIntervalMin || 4;
@@ -411,7 +416,7 @@
       updateUI();
     });
 
-    // Generate cue cards via main process AI client (API key never in renderer)
+    // Generate cue cards via main process AI client (prompt + parsing centralized in ai-client.js)
     generateBtn.addEventListener('click', async () => {
       const context = prepContextEl.value.trim();
       if (!context) return;
@@ -420,38 +425,14 @@
       generateBtn.textContent = 'Generating...';
 
       try {
-        const prompt = `You are a meeting prep assistant. Given the following meeting prep context, generate:
-
-1. "cards" - An array of 8-10 cue cards. Each card has:
-   - "title": short category (e.g., "Quick Facts", "Theme: Speed", "Danger Zone", "Questions to Ask", "Your Angle")
-   - "body": 2-3 lines of bullet points (very concise, glanceable during a call)
-
-2. "checklist" - An array of 6-8 topic items to track during conversation. Each has:
-   - "label": short topic name (2-3 words)
-   - "checked": false
-
-Return ONLY valid JSON with keys "cards" and "checklist". No markdown, no explanation.
-
-Meeting prep context:
-${context.slice(0, 6000)}`;
-
-        const result = await window.presence.queryAI(prompt, {
-          maxTokens: 2048,
-          temperature: 0.3,
-          systemPrompt: 'You are a meeting preparation assistant. Always respond with valid JSON only, no markdown formatting.'
-        });
+        const result = await window.presence.generateCards(context);
 
         if (result.error) {
           throw new Error(result.error);
         }
 
-        // Parse the AI response
-        let text = result.text;
-        text = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-        const parsed = JSON.parse(text);
-
-        sendState({ prepCards: parsed.cards, checklist: parsed.checklist });
-        generateBtn.textContent = 'Cards generated! (' + parsed.cards.length + ')';
+        sendState({ prepCards: result.cards, checklist: result.checklist });
+        generateBtn.textContent = 'Cards generated! (' + result.cards.length + ')';
         setTimeout(() => {
           generateBtn.textContent = 'Regenerate Cue Cards';
           generateBtn.disabled = false;
@@ -489,6 +470,12 @@ ${context.slice(0, 6000)}`;
     window.presence.onSessionSummary((summary) => {
       isSessionActive = false;
       state.lastSummary = summary;
+      updateUI();
+    });
+
+    // Reset session button if overlay reports failure (e.g. mic denied)
+    window.presence.onSessionFailed((reason) => {
+      isSessionActive = false;
       updateUI();
     });
   </script>
