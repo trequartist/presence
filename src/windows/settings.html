@@ -184,7 +184,7 @@
       <div class="input-group">
         <label for="apiKeyInput">Gemini API Key</label>
         <input type="password" id="apiKeyInput" placeholder="Paste your Gemini API key here...">
-        <div class="hint">Get a key at <span style="color:#6366f1">ai.google.dev</span> &mdash; stored locally in .env</div>
+        <div class="hint">Get a key at <span style="color:#6366f1">ai.google.dev</span> &mdash; stored locally on your Mac</div>
       </div>
     </div>
 
@@ -293,17 +293,6 @@
   // Allow Enter to save
   apiKeyInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') saveBtn.click();
-  });
-
-  // Listen for state changes to refresh AI status (guarded to avoid redundant updates)
-  let lastAiStatus = null;
-  window.presence.onStateUpdate(() => {
-    window.presence.getAppInfo().then(info => {
-      if (info.aiAvailable !== lastAiStatus) {
-        lastAiStatus = info.aiAvailable;
-        updateStatus('ai', info.aiAvailable, info.aiAvailable ? 'AI ready (Gemini)' : 'Set API key to enable AI features');
-      }
-    });
   });
 
   init();
