@@ -1308,8 +1308,7 @@
 
         updateHeaderCountdown();
 
-        // Clear the calendar context from state so it doesn't re-fill on next open
-        window.presence.updateState({ prep: { calendarContext: null } });
+        // Note: main process clears calendarContext after 3s (crash-safe cleanup)
       } catch (e) {
         // Calendar context is optional — ignore errors
       }
