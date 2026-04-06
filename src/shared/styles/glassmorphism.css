@@ -1,0 +1,333 @@
+/* ============================================
+   Presence — Shared Glassmorphism Design Tokens
+   ============================================ */
+
+:root {
+  /* Background */
+  --bg-primary: rgba(10, 10, 14, 0.92);
+  --bg-secondary: rgba(20, 20, 26, 0.85);
+  --bg-surface: rgba(30, 30, 38, 0.6);
+  --bg-hover: rgba(255, 255, 255, 0.06);
+
+  /* Borders */
+  --border-subtle: 1px solid rgba(255, 255, 255, 0.08);
+  --border-active: 1px solid rgba(255, 255, 255, 0.15);
+
+  /* Border radius */
+  --radius-overlay: 14px;
+  --radius-control: 8px;
+  --radius-pill: 20px;
+  --radius-sm: 4px;
+
+  /* Blur */
+  --blur-heavy: blur(20px);
+  --blur-light: blur(10px);
+
+  /* Colors — semantic */
+  --color-green: #44dd88;
+  --color-amber: #ffaa00;
+  --color-red: #ff4444;
+  --color-blue: #88aaff;
+  --color-text: #e0e0e0;
+  --color-text-muted: rgba(255, 255, 255, 0.5);
+  --color-text-dim: rgba(255, 255, 255, 0.3);
+
+  /* Typography */
+  --font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-mono: 'SF Mono', 'Menlo', 'Monaco', monospace;
+  --font-size-xs: 10px;
+  --font-size-sm: 12px;
+  --font-size-base: 14px;
+  --font-size-lg: 16px;
+  --font-size-xl: 20px;
+  --font-size-2xl: 24px;
+
+  /* Spacing */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 12px;
+  --space-lg: 16px;
+  --space-xl: 24px;
+
+  /* Shadows */
+  --shadow-overlay: 0 8px 32px rgba(0, 0, 0, 0.4);
+  --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.3);
+
+  /* Transitions */
+  --transition-fast: 150ms ease;
+  --transition-normal: 250ms ease;
+  --transition-slow: 400ms ease;
+}
+
+/* ============================================
+   Base Reset
+   ============================================ */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--font-family);
+  font-size: var(--font-size-base);
+  color: var(--color-text);
+  background: transparent;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+  user-select: none;
+}
+
+/* ============================================
+   Glassmorphism Containers
+   ============================================ */
+
+.glass-overlay {
+  background: var(--bg-primary);
+  backdrop-filter: var(--blur-heavy);
+  -webkit-backdrop-filter: var(--blur-heavy);
+  border: var(--border-subtle);
+  border-radius: var(--radius-overlay);
+  box-shadow: var(--shadow-overlay);
+}
+
+.glass-card {
+  background: var(--bg-surface);
+  backdrop-filter: var(--blur-light);
+  -webkit-backdrop-filter: var(--blur-light);
+  border: var(--border-subtle);
+  border-radius: var(--radius-control);
+  padding: var(--space-md);
+}
+
+.glass-panel {
+  background: var(--bg-secondary);
+  backdrop-filter: var(--blur-heavy);
+  -webkit-backdrop-filter: var(--blur-heavy);
+  border: var(--border-subtle);
+  border-radius: var(--radius-overlay);
+  box-shadow: var(--shadow-overlay);
+}
+
+/* ============================================
+   Drag Handle
+   ============================================ */
+
+.drag-handle {
+  -webkit-app-region: drag;
+  cursor: grab;
+}
+
+.drag-handle:active {
+  cursor: grabbing;
+}
+
+.no-drag {
+  -webkit-app-region: no-drag;
+}
+
+/* ============================================
+   Buttons
+   ============================================ */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+  padding: var(--space-sm) var(--space-lg);
+  border: var(--border-subtle);
+  border-radius: var(--radius-control);
+  background: var(--bg-surface);
+  color: var(--color-text);
+  font-family: var(--font-family);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  -webkit-app-region: no-drag;
+}
+
+.btn:hover {
+  background: var(--bg-hover);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.btn-primary {
+  background: rgba(68, 221, 136, 0.15);
+  border-color: rgba(68, 221, 136, 0.3);
+  color: var(--color-green);
+}
+
+.btn-primary:hover {
+  background: rgba(68, 221, 136, 0.25);
+}
+
+.btn-danger {
+  background: rgba(255, 68, 68, 0.15);
+  border-color: rgba(255, 68, 68, 0.3);
+  color: var(--color-red);
+}
+
+.btn-danger:hover {
+  background: rgba(255, 68, 68, 0.25);
+}
+
+.btn-blue {
+  background: rgba(136, 170, 255, 0.15);
+  border-color: rgba(136, 170, 255, 0.3);
+  color: var(--color-blue);
+}
+
+.btn-blue:hover {
+  background: rgba(136, 170, 255, 0.25);
+}
+
+/* ============================================
+   Sliders
+   ============================================ */
+
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  outline: none;
+  -webkit-app-region: no-drag;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--color-text);
+  cursor: pointer;
+  border: none;
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+  background: #fff;
+  transform: scale(1.1);
+}
+
+/* ============================================
+   Text Inputs & Textareas
+   ============================================ */
+
+textarea,
+input[type="text"] {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.05);
+  border: var(--border-subtle);
+  border-radius: var(--radius-control);
+  color: var(--color-text);
+  font-family: var(--font-family);
+  font-size: var(--font-size-sm);
+  padding: var(--space-sm) var(--space-md);
+  outline: none;
+  resize: vertical;
+  transition: border-color var(--transition-fast);
+  -webkit-app-region: no-drag;
+}
+
+textarea:focus,
+input[type="text"]:focus {
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+textarea::placeholder,
+input[type="text"]::placeholder {
+  color: var(--color-text-dim);
+}
+
+/* ============================================
+   Labels & Text
+   ============================================ */
+
+.label {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: var(--space-xs);
+}
+
+.text-green { color: var(--color-green); }
+.text-amber { color: var(--color-amber); }
+.text-red { color: var(--color-red); }
+.text-blue { color: var(--color-blue); }
+.text-muted { color: var(--color-text-muted); }
+
+/* ============================================
+   Status Indicators
+   ============================================ */
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.status-dot.active {
+  background: var(--color-green);
+  box-shadow: 0 0 6px var(--color-green);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.status-dot.warning {
+  background: var(--color-amber);
+  box-shadow: 0 0 6px var(--color-amber);
+}
+
+.status-dot.error {
+  background: var(--color-red);
+  box-shadow: 0 0 6px var(--color-red);
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* ============================================
+   Scrollbar
+   ============================================ */
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+/* ============================================
+   Utility Classes
+   ============================================ */
+
+.flex { display: flex; }
+.flex-col { flex-direction: column; }
+.items-center { align-items: center; }
+.justify-between { justify-content: space-between; }
+.gap-xs { gap: var(--space-xs); }
+.gap-sm { gap: var(--space-sm); }
+.gap-md { gap: var(--space-md); }
+.gap-lg { gap: var(--space-lg); }
+.p-sm { padding: var(--space-sm); }
+.p-md { padding: var(--space-md); }
+.p-lg { padding: var(--space-lg); }
+.hidden { display: none !important; }

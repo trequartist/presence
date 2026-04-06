@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Presence — Prompter Editor</title>
+  <link rel="stylesheet" href="../../shared/styles/glassmorphism.css">
+  <style>
+    .container {
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      height: 100vh;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .title {
+      font-size: 16px;
+      font-weight: 600;
+    }
+    .mode-badge {
+      font-size: 10px;
+      color: var(--color-blue);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      padding: 4px 8px;
+      border: 1px solid rgba(136, 170, 255, 0.3);
+      border-radius: var(--radius-pill);
+    }
+    .placeholder {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--color-text-muted);
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+  <div class="glass-panel container drag-handle">
+    <div class="header no-drag">
+      <span class="title">Teleprompter</span>
+      <span class="mode-badge">Phase 3</span>
+    </div>
+    <div class="placeholder">
+      Full editor UI coming in Phase 3
+    </div>
+    <div class="no-drag" style="display: flex; gap: 8px;">
+      <button class="btn" onclick="window.presence.toggleOverlay()">Toggle Overlay</button>
+      <button class="btn" onclick="window.presence.closeEditor()">Close</button>
+    </div>
+  </div>
+  <script>
+    window.presence.onStateUpdate((state) => {
+      console.log('[Prompter Editor] State update received');
+    });
+  </script>
+</body>
+</html>

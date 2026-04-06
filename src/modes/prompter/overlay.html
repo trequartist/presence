@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Presence — Prompter Overlay</title>
+  <link rel="stylesheet" href="../../shared/styles/glassmorphism.css">
+  <style>
+    body { background: transparent; }
+    .container {
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .mode-label {
+      font-size: 11px;
+      color: var(--color-blue);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .status {
+      font-size: 13px;
+      color: var(--color-text-muted);
+    }
+  </style>
+</head>
+<body>
+  <div class="glass-overlay container drag-handle">
+    <span class="status-dot" style="background: var(--color-blue); box-shadow: 0 0 6px var(--color-blue);"></span>
+    <span class="mode-label">Teleprompter</span>
+    <span class="status">Ready — Phase 3 will add full UI</span>
+  </div>
+  <script>
+    window.presence.onStateUpdate((state) => {
+      console.log('[Prompter Overlay] State update received', state.activeMode);
+    });
+  </script>
+</body>
+</html>

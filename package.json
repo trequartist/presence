@@ -5,7 +5,8 @@
   "main": "src/main.js",
   "scripts": {
     "start": "unset ELECTRON_RUN_AS_NODE && electron .",
-    "dev": "unset ELECTRON_RUN_AS_NODE && ELECTRON_ENABLE_LOGGING=1 electron ."
+    "dev": "unset ELECTRON_RUN_AS_NODE && ELECTRON_ENABLE_LOGGING=1 electron .",
+    "test": "node test/state-manager.test.js && node test/ai-client.test.js"
   },
   "dependencies": {
     "electron": "^41.0.2"

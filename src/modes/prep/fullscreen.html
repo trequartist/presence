@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Presence — Pre-Meeting Prep</title>
+  <link rel="stylesheet" href="../../shared/styles/glassmorphism.css">
+  <style>
+    body {
+      background: #0a0a0e;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .container {
+      text-align: center;
+      max-width: 600px;
+    }
+    .title {
+      font-size: 28px;
+      font-weight: 300;
+      margin-bottom: 8px;
+      letter-spacing: -0.5px;
+    }
+    .subtitle {
+      font-size: 14px;
+      color: var(--color-text-muted);
+      margin-bottom: 32px;
+    }
+    .mode-badge {
+      font-size: 11px;
+      color: var(--color-amber);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      padding: 6px 16px;
+      border: 1px solid rgba(255, 170, 0, 0.3);
+      border-radius: var(--radius-pill);
+      display: inline-block;
+      margin-bottom: 24px;
+    }
+    .hint {
+      font-size: 12px;
+      color: var(--color-text-dim);
+    }
+    .esc-hint {
+      margin-top: 40px;
+      font-size: 11px;
+      color: var(--color-text-dim);
+    }
+    kbd {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 4px;
+      padding: 2px 6px;
+      font-family: var(--font-mono);
+      font-size: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="mode-badge">Phase 4</div>
+    <h1 class="title">Pre-Meeting Prep</h1>
+    <p class="subtitle">Full 5-stage rehearsal flow coming in Phase 4</p>
+    <p class="hint">Context &rarr; Briefing &rarr; Rehearsal &rarr; Scorecard &rarr; Transition</p>
+    <p class="esc-hint">Press <kbd>Esc</kbd> or switch modes via tray to exit</p>
+  </div>
+  <script>
+    window.presence.onStateUpdate((state) => {
+      console.log('[Prep Fullscreen] State update received', state.activeMode);
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        window.presence.switchMode('coach');
+      }
+    });
+  </script>
+</body>
+</html>

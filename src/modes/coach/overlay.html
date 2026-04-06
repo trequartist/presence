@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Presence — Coach Overlay</title>
+  <link rel="stylesheet" href="../../shared/styles/glassmorphism.css">
+  <style>
+    body { background: transparent; }
+    .container {
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .mode-label {
+      font-size: 11px;
+      color: var(--color-green);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .status {
+      font-size: 13px;
+      color: var(--color-text-muted);
+    }
+  </style>
+</head>
+<body>
+  <div class="glass-overlay container drag-handle">
+    <span class="status-dot active"></span>
+    <span class="mode-label">Meeting Coach</span>
+    <span class="status">Ready — Phase 2 will add full UI</span>
+  </div>
+  <script>
+    window.presence.onStateUpdate((state) => {
+      console.log('[Coach Overlay] State update received', state.activeMode);
+    });
+    window.presence.onSessionStart(() => {
+      console.log('[Coach Overlay] Session started');
+    });
+    window.presence.onSessionStop(() => {
+      console.log('[Coach Overlay] Session stopped');
+    });
+  </script>
+</body>
+</html>
