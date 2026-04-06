@@ -205,15 +205,12 @@ test('flush writes state to disk immediately', () => {
 
 // --- debounce ---
 
-test('debounced save writes to disk after delay', (done) => {
+test('flush after updateState persists the latest state', () => {
   const sm = createFreshStateManager();
   sm.init(tmpDir);
   sm.updateState({ activeMode: 'prompter' });
   const stateFile = path.join(tmpDir, 'state.json');
-
-  // Immediately after update, file may not be written yet (debounce is 500ms)
-  // But we can't easily test async timing with sync test runner,
-  // so we just verify flush works as the synchronous guarantee
+  // flush forces immediate write regardless of debounce timer
   sm.flush();
   const onDisk = JSON.parse(fs.readFileSync(stateFile, 'utf-8'));
   assert.strictEqual(onDisk.activeMode, 'prompter');
@@ -231,6 +228,20 @@ test('multiple rapid updates are merged correctly', () => {
   assert.strictEqual(state.coach.notes, 'first');
   assert.strictEqual(state.coach.sensitivity, 0.8);
   assert.strictEqual(state.activeMode, 'prompter');
+});
+
+test('partial overlayBounds are preserved correctly through deep merge', () => {
+  const sm = createFreshStateManager();
+  sm.init(tmpDir);
+  // Simulate a partial overlayBounds (e.g. from corrupted state or older version)
+  sm.updateState({ coach: { overlayBounds: { x: 50, y: 60 } } });
+  const state = sm.getState();
+  // x and y should be updated
+  assert.strictEqual(state.coach.overlayBounds.x, 50);
+  assert.strictEqual(state.coach.overlayBounds.y, 60);
+  // width and height should be preserved from defaults
+  assert.strictEqual(state.coach.overlayBounds.width, 640);
+  assert.strictEqual(state.coach.overlayBounds.height, 200);
 });
 
 test('updateState with empty object does not break state', () => {

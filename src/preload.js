@@ -1,21 +1,34 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
+/**
+ * Helper: register an IPC listener and return a cleanup function.
+ */
+function onChannel(channel, transform) {
+  return (cb) => {
+    const handler = transform
+      ? (event, ...args) => cb(transform(...args))
+      : (event, ...args) => cb(...args);
+    ipcRenderer.on(channel, handler);
+    return () => ipcRenderer.removeListener(channel, handler);
+  };
+}
+
 contextBridge.exposeInMainWorld('presence', {
   // --- State ---
-  onStateUpdate: (cb) => ipcRenderer.on('state-update', (_, state) => cb(state)),
+  onStateUpdate: onChannel('state-update', (state) => state),
   updateState: (partial) => ipcRenderer.send('update-state', partial),
   getState: () => ipcRenderer.invoke('get-state'),
 
   // --- Mode ---
   switchMode: (mode) => ipcRenderer.send('switch-mode', mode),
-  onModeChange: (cb) => ipcRenderer.on('mode-change', (_, mode) => cb(mode)),
+  onModeChange: onChannel('mode-change', (mode) => mode),
 
   // --- Session (coach mode) ---
   startSession: () => ipcRenderer.send('session-start'),
   stopSession: () => ipcRenderer.send('session-stop'),
-  onSessionStart: (cb) => ipcRenderer.on('session-start', () => cb()),
-  onSessionStop: (cb) => ipcRenderer.on('session-stop', () => cb()),
-  onSessionSummary: (cb) => ipcRenderer.on('session-summary', (_, summary) => cb(summary)),
+  onSessionStart: onChannel('session-start'),
+  onSessionStop: onChannel('session-stop'),
+  onSessionSummary: onChannel('session-summary', (summary) => summary),
   sendSummary: (summary) => ipcRenderer.send('session-summary', summary),
 
   // --- AI ---

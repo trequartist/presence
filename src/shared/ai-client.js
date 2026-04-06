@@ -27,14 +27,14 @@ class AIClient {
   }
 
   /**
-   * Send a prompt to Gemini and return the text response.
+   * Send a prompt to Gemini and return a result object.
    * @param {string} prompt - The user prompt
    * @param {object} opts - { maxTokens, temperature, systemPrompt }
-   * @returns {Promise<string>} The model's text response
+   * @returns {Promise<{text: string|null, error: string|null}>}
    */
   async queryGemini(prompt, opts = {}) {
     if (!this._apiKey) {
-      return { error: 'Gemini API key not configured. Set GEMINI_API_KEY in your .env file.' };
+      return { text: null, error: 'Gemini API key not configured. Set GEMINI_API_KEY in your .env file.' };
     }
 
     const { maxTokens = 2048, temperature = 0.7, systemPrompt = '' } = opts;
@@ -64,28 +64,24 @@ class AIClient {
       if (!response.ok) {
         const errBody = await response.text();
         console.error('[AIClient] Gemini API error:', response.status, errBody);
-        return { error: `Gemini API error (${response.status})` };
+        return { text: null, error: `Gemini API error (${response.status})` };
       }
 
       const data = await response.json();
       const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
-      return text;
+      return { text, error: null };
     } catch (err) {
       console.error('[AIClient] Network error:', err.message);
-      return { error: `Network error: ${err.message}` };
+      return { text: null, error: `Network error: ${err.message}` };
     }
   }
 
   /**
    * Generate prep cards and checklist from context.
    * @param {string} context - Meeting/prep context text
-   * @returns {Promise<{cards: Array, checklist: Array}>}
+   * @returns {Promise<{cards: Array, checklist: Array, error: string|null}>}
    */
   async generateCards(context) {
-    if (!this._apiKey) {
-      return { error: 'Gemini API key not configured.' };
-    }
-
     const prompt = `Based on this meeting context, generate preparation cards and a checklist.
 
 Context:
@@ -109,17 +105,18 @@ Generate 3-6 cards covering key talking points, and 4-7 checklist items for topi
       systemPrompt: 'You are a meeting preparation assistant. Always respond with valid JSON only, no markdown formatting.'
     });
 
-    if (typeof result === 'object' && result.error) {
-      return result;
+    if (result.error) {
+      return { cards: [], checklist: [], error: result.error };
     }
 
     try {
       // Strip markdown code fences if present
-      const cleaned = result.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-      return JSON.parse(cleaned);
+      const cleaned = result.text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      const parsed = JSON.parse(cleaned);
+      return { cards: parsed.cards || [], checklist: parsed.checklist || [], error: null };
     } catch (err) {
       console.error('[AIClient] Failed to parse card generation response:', err.message);
-      return { error: 'Failed to parse AI response' };
+      return { cards: [], checklist: [], error: 'Failed to parse AI response' };
     }
   }
 }

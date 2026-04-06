@@ -41,9 +41,21 @@ const aiClient = require('./shared/ai-client');
 const windowManager = require('./windows/window-manager');
 
 // ---------------------------------------------------------------------------
-// App globals
+// Helpers
 // ---------------------------------------------------------------------------
 let tray = null;
+
+function getActiveMode() {
+  return stateManager.getState().activeMode || 'coach';
+}
+
+/**
+ * Safely execute a callback with a window, checking it exists and isn't destroyed.
+ */
+function withWindow(mode, type, fn) {
+  const win = windowManager.getWindow(mode, type);
+  if (win && !win.isDestroyed()) fn(win);
+}
 
 // ---------------------------------------------------------------------------
 // Tray
@@ -66,7 +78,7 @@ function createTray() {
   updateTrayMenu();
 
   tray.on('click', () => {
-    const mode = stateManager.getState().activeMode || 'coach';
+    const mode = getActiveMode();
     if (mode === 'prep') {
       // Prep mode has no editor — open fullscreen instead
       windowManager.switchMode('prep');
@@ -77,8 +89,7 @@ function createTray() {
 }
 
 function updateTrayMenu() {
-  const state = stateManager.getState();
-  const activeMode = state.activeMode || 'coach';
+  const activeMode = getActiveMode();
 
   const contextMenu = Menu.buildFromTemplate([
     {
@@ -110,9 +121,14 @@ function updateTrayMenu() {
 // Mode switching
 // ---------------------------------------------------------------------------
 function switchToMode(mode) {
+  const previousMode = windowManager.activeMode;
   windowManager.switchMode(mode);
   updateTrayMenu();
-  // Notify all windows of mode change
+  // Notify previous mode's windows (for cleanup, e.g. stopping audio capture)
+  if (previousMode && previousMode !== mode) {
+    windowManager.broadcastToMode(previousMode, 'mode-change', mode);
+  }
+  // Notify new mode's windows
   windowManager.broadcastToMode(mode, 'mode-change', mode);
 }
 
@@ -133,25 +149,30 @@ app.whenReady().then(() => {
   // Create tray
   createTray();
 
-  // Register global shortcuts
-  globalShortcut.register('CommandOrControl+Shift+M', () => {
+  // Register global shortcuts (check return values for failures)
+  function registerShortcut(accelerator, callback) {
+    const success = globalShortcut.register(accelerator, callback);
+    if (!success) {
+      console.warn(`[Presence] Failed to register shortcut: ${accelerator} (may be in use by another app)`);
+    }
+    return success;
+  }
+
+  registerShortcut('CommandOrControl+Shift+M', () => {
     windowManager.toggleOverlay('coach');
   });
 
-  globalShortcut.register('CommandOrControl+Shift+P', () => {
+  registerShortcut('CommandOrControl+Shift+P', () => {
     windowManager.toggleOverlay('prompter');
   });
 
-  globalShortcut.register('CommandOrControl+Shift+R', () => {
+  registerShortcut('CommandOrControl+Shift+R', () => {
     switchToMode('prep');
   });
 
   // Lifeline shortcut (coach mode — full logic in Phase 2)
-  globalShortcut.register('CommandOrControl+Shift+L', () => {
-    const overlay = windowManager.getWindow('coach', 'overlay');
-    if (overlay && !overlay.isDestroyed()) {
-      overlay.webContents.send('lifeline-toggle');
-    }
+  registerShortcut('CommandOrControl+Shift+L', () => {
+    withWindow('coach', 'overlay', (win) => win.webContents.send('lifeline-toggle'));
   });
 
   // Note: Cue card navigation (Cmd+Left/Right) is handled as local keyboard
@@ -163,6 +184,9 @@ app.whenReady().then(() => {
     windowManager.broadcastState(state);
   });
 
+  // Intentionally no initial window — this is a menubar-only app.
+  // User activates modes via tray menu click or global shortcuts.
+  // This matches the UX pattern of both MeetingCoach and DemoPrompter.
   console.log('[Presence] App ready. Tray icon active.');
   console.log(`[Presence] State file: ${path.join(configDir, 'state.json')}`);
   console.log(`[Presence] AI available: ${aiClient.isAvailable}`);
@@ -188,26 +212,19 @@ ipcMain.on('switch-mode', (event, mode) => {
 
 // Session (coach mode)
 ipcMain.on('session-start', () => {
-  const overlay = windowManager.getWindow('coach', 'overlay');
-  if (overlay && !overlay.isDestroyed()) {
-    overlay.webContents.send('session-start');
-    if (!overlay.isVisible()) overlay.show();
-  }
+  withWindow('coach', 'overlay', (win) => {
+    win.webContents.send('session-start');
+    if (!win.isVisible()) win.show();
+  });
 });
 
 ipcMain.on('session-stop', () => {
-  const overlay = windowManager.getWindow('coach', 'overlay');
-  if (overlay && !overlay.isDestroyed()) {
-    overlay.webContents.send('session-stop');
-  }
+  withWindow('coach', 'overlay', (win) => win.webContents.send('session-stop'));
 });
 
 ipcMain.on('session-summary', (event, summary) => {
   stateManager.updateState({ coach: { lastSummary: summary } });
-  const editor = windowManager.getWindow('coach', 'editor');
-  if (editor && !editor.isDestroyed()) {
-    editor.webContents.send('session-summary', summary);
-  }
+  withWindow('coach', 'editor', (win) => win.webContents.send('session-summary', summary));
 });
 
 // AI (all queries go through main process — key never in renderer)
@@ -246,14 +263,11 @@ ipcMain.handle('request-mic-permission', async () => {
 
 // Window controls
 ipcMain.on('toggle-overlay', () => {
-  const mode = stateManager.getState().activeMode || 'coach';
-  windowManager.toggleOverlay(mode);
+  windowManager.toggleOverlay(getActiveMode());
 });
 
 ipcMain.on('close-editor', () => {
-  const mode = stateManager.getState().activeMode || 'coach';
-  const editor = windowManager.getWindow(mode, 'editor');
-  if (editor && !editor.isDestroyed()) editor.hide();
+  withWindow(getActiveMode(), 'editor', (win) => win.hide());
 });
 
 ipcMain.on('quit-app', () => app.quit());

@@ -13,6 +13,12 @@ const stateManager = require('../shared/state-manager');
 
 const PRELOAD_PATH = path.join(__dirname, '..', 'preload.js');
 
+const WEB_PREFERENCES = {
+  preload: PRELOAD_PATH,
+  contextIsolation: true,
+  nodeIntegration: false
+};
+
 // Mode -> window type -> HTML file path (relative to src/modes/)
 const MODE_FILES = {
   coach: {
@@ -40,12 +46,33 @@ class WindowManager {
   }
 
   /**
+   * Attach initial state sync on window load.
+   */
+  _attachStateSync(win) {
+    win.webContents.on('did-finish-load', () => {
+      win.webContents.send('state-update', stateManager.getState());
+    });
+  }
+
+  /**
    * Create an overlay window for the given mode.
    * Frameless, transparent, always-on-top, non-activating.
    */
   _createOverlay(mode) {
+    const defaultBounds = {
+      coach: { x: 100, y: 40, width: 640, height: 200 },
+      prompter: { x: 100, y: 300, width: 340, height: 240 }
+    };
+    const defaults = defaultBounds[mode] || { x: 100, y: 40, width: 640, height: 200 };
     const modeState = stateManager.getState()[mode] || {};
-    const bounds = modeState.overlayBounds || { x: 100, y: 40, width: 640, height: 200 };
+    const saved = modeState.overlayBounds || {};
+    // Normalize: fill in any missing keys from defaults
+    const bounds = {
+      x: typeof saved.x === 'number' ? saved.x : defaults.x,
+      y: typeof saved.y === 'number' ? saved.y : defaults.y,
+      width: typeof saved.width === 'number' ? saved.width : defaults.width,
+      height: typeof saved.height === 'number' ? saved.height : defaults.height
+    };
 
     const win = new BrowserWindow({
       x: bounds.x,
@@ -60,11 +87,7 @@ class WindowManager {
       focusable: false,
       resizable: true,
       show: false,
-      webPreferences: {
-        preload: PRELOAD_PATH,
-        contextIsolation: true,
-        nodeIntegration: false
-      }
+      webPreferences: { ...WEB_PREFERENCES }
     });
 
     win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
@@ -86,10 +109,7 @@ class WindowManager {
       stateManager.updateState({ [mode]: { overlayBounds: { width, height } } });
     });
 
-    // Send initial state when loaded
-    win.webContents.on('did-finish-load', () => {
-      win.webContents.send('state-update', stateManager.getState());
-    });
+    this._attachStateSync(win);
 
     win.on('closed', () => {
       this._windows[mode].overlay = null;
@@ -118,19 +138,13 @@ class WindowManager {
       skipTaskbar: true,
       resizable: false,
       show: false,
-      webPreferences: {
-        preload: PRELOAD_PATH,
-        contextIsolation: true,
-        nodeIntegration: false
-      }
+      webPreferences: { ...WEB_PREFERENCES }
     });
 
     const htmlPath = MODE_FILES[mode]?.editor;
     if (htmlPath) win.loadFile(htmlPath);
 
-    win.webContents.on('did-finish-load', () => {
-      win.webContents.send('state-update', stateManager.getState());
-    });
+    this._attachStateSync(win);
 
     win.on('blur', () => win.hide());
 
@@ -150,19 +164,13 @@ class WindowManager {
       frame: false,
       backgroundColor: '#0a0a0e',
       show: false,
-      webPreferences: {
-        preload: PRELOAD_PATH,
-        contextIsolation: true,
-        nodeIntegration: false
-      }
+      webPreferences: { ...WEB_PREFERENCES }
     });
 
     const htmlPath = MODE_FILES[mode]?.fullscreen;
     if (htmlPath) win.loadFile(htmlPath);
 
-    win.webContents.on('did-finish-load', () => {
-      win.webContents.send('state-update', stateManager.getState());
-    });
+    this._attachStateSync(win);
 
     win.on('closed', () => {
       this._windows[mode].fullscreen = null;
@@ -241,6 +249,8 @@ class WindowManager {
       overlay.hide();
     } else {
       overlay.show();
+      // Manual send needed: window may have missed broadcasts while hidden
+      // (broadcastState only sends to visible windows)
       overlay.webContents.send('state-update', stateManager.getState());
     }
   }

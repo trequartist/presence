@@ -52,22 +52,25 @@ test('isAvailable is true when API key is set', () => {
 
 // Async tests
 (async () => {
-  await testAsync('queryGemini returns error object when no API key', async () => {
+  await testAsync('queryGemini returns { text: null, error } when no API key', async () => {
     delete process.env.GEMINI_API_KEY;
     const ai = createFreshAIClient();
     ai.init();
     const result = await ai.queryGemini('test prompt');
-    assert.ok(typeof result === 'object');
+    assert.strictEqual(result.text, null);
     assert.ok(result.error);
     assert.ok(result.error.includes('not configured'));
   });
 
-  await testAsync('generateCards returns error object when no API key', async () => {
+  await testAsync('generateCards returns { cards: [], checklist: [], error } when no API key', async () => {
     delete process.env.GEMINI_API_KEY;
     const ai = createFreshAIClient();
     ai.init();
     const result = await ai.generateCards('test context');
-    assert.ok(typeof result === 'object');
+    assert.ok(Array.isArray(result.cards));
+    assert.strictEqual(result.cards.length, 0);
+    assert.ok(Array.isArray(result.checklist));
+    assert.strictEqual(result.checklist.length, 0);
     assert.ok(result.error);
     assert.ok(result.error.includes('not configured'));
   });
