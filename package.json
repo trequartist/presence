@@ -7,7 +7,9 @@
     "start": "unset ELECTRON_RUN_AS_NODE && electron .",
     "dev": "unset ELECTRON_RUN_AS_NODE && ELECTRON_ENABLE_LOGGING=1 electron .",
     "test": "node test/state-manager.test.js && node test/ai-client.test.js && node test/rehearsal-engine.test.js && node test/coaching-engine.test.js && node test/scroll-engine.test.js && node test/calendar-bridge.test.js",
+    "prepack": "bash scripts/generate-icns.sh",
     "pack": "electron-builder --dir",
+    "predist": "bash scripts/generate-icns.sh",
     "dist": "electron-builder --mac"
   },
   "devDependencies": {
@@ -19,7 +21,7 @@
     "productName": "Presence",
     "mac": {
       "category": "public.app-category.productivity",
-      "icon": "assets/icon.icns",
+      "icon": "build/icon.icns",
       "target": [
         { "target": "dmg", "arch": ["arm64", "x64"] }
       ],

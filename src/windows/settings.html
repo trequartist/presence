@@ -282,12 +282,11 @@
   });
 
   cancelBtn.addEventListener('click', () => {
-    // Mark setup complete even on cancel (user chose to skip)
-    window.presence.completeSetup();
+    // Skip for now — close without marking setup complete.
+    // Will prompt again next launch if AI is still unconfigured.
     window.close();
   });
   closeBtn.addEventListener('click', () => {
-    window.presence.completeSetup();
     window.close();
   });
 

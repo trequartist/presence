@@ -34,6 +34,16 @@ function loadEnvFile() {
 
 loadEnvFile();
 
+// Load API key from config dir if not in env (packaged app fallback)
+if (!process.env.GEMINI_API_KEY) {
+  try {
+    const configKey = fs.readFileSync(
+      path.join(os.homedir(), '.config', 'presence', 'api-key'), 'utf-8'
+    ).trim();
+    if (configKey) process.env.GEMINI_API_KEY = configKey;
+  } catch { /* No saved key — AI features will be unavailable */ }
+}
+
 // ---------------------------------------------------------------------------
 // Imports (after env is loaded so ai-client can read GEMINI_API_KEY)
 // ---------------------------------------------------------------------------
@@ -403,24 +413,31 @@ ipcMain.on('save-api-key', (event, key) => {
   if (!key || typeof key !== 'string' || key.trim().length < 10) return;
   key = key.trim();
 
-  // Write to .env file
+  // Write API key to user config dir (writable in packaged app)
+  // Also update .env for development mode
   try {
-    let content = '';
-    try { content = fs.readFileSync(ENV_PATH, 'utf-8'); } catch { /* new file */ }
+    // Save to config dir (same location as state.json)
+    const configDir = path.join(os.homedir(), '.config', 'presence');
+    fs.mkdirSync(configDir, { recursive: true });
+    fs.writeFileSync(path.join(configDir, 'api-key'), key);
 
-    // Replace or append GEMINI_API_KEY
-    const lines = content.split('\n');
-    let found = false;
-    for (let i = 0; i < lines.length; i++) {
-      if (/^GEMINI_API_KEY\s*=/.test(lines[i].trim())) {
-        lines[i] = `GEMINI_API_KEY=${key}`;
-        found = true;
-        break;
+    // Also try to update .env for dev mode (may fail in packaged app — that's OK)
+    try {
+      let content = '';
+      try { content = fs.readFileSync(ENV_PATH, 'utf-8'); } catch { /* new file */ }
+      const lines = content.split('\n');
+      let found = false;
+      for (let i = 0; i < lines.length; i++) {
+        if (/^GEMINI_API_KEY\s*=/.test(lines[i].trim())) {
+          lines[i] = `GEMINI_API_KEY=${key}`;
+          found = true;
+          break;
+        }
       }
-    }
-    if (!found) lines.push(`GEMINI_API_KEY=${key}`);
+      if (!found) lines.push(`GEMINI_API_KEY=${key}`);
+      fs.writeFileSync(ENV_PATH, lines.join('\n'));
+    } catch { /* Read-only in packaged app — config dir has the key */ }
 
-    fs.writeFileSync(ENV_PATH, lines.join('\n'));
     process.env.GEMINI_API_KEY = key;
     aiClient.init(); // Re-initialize with new key
     console.log('[Presence] API key saved.');

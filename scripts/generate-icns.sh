@@ -21,10 +21,11 @@ cp assets/icon-512.png "$ICONSET_DIR/icon_256x256@2x.png"
 cp assets/icon-512.png "$ICONSET_DIR/icon_512x512.png"
 cp assets/icon-512.png "$ICONSET_DIR/icon_512x512@2x.png"
 
-# Generate .icns
-iconutil -c icns "$ICONSET_DIR" -o assets/icon.icns
+# Generate .icns into build/ directory
+mkdir -p build
+iconutil -c icns "$ICONSET_DIR" -o build/icon.icns
 
 # Cleanup
 rm -rf "$ICONSET_DIR"
 
-echo "Generated assets/icon.icns"
+echo "Generated build/icon.icns"
