@@ -830,6 +830,7 @@
     }
 
     async function startRehearsal() {
+      if (isRehearsing) return; // Prevent double-start
       isRehearsing = true;
       rehearsalStartTime = Date.now();
 
@@ -870,8 +871,28 @@
 
       // Request mic permission and start audio
       const micGranted = await window.presence.requestMicPermission();
-      if (micGranted) {
-        await audioEngine.start();
+      if (!micGranted) {
+        // Abort — can't rehearse without mic
+        isRehearsing = false;
+        document.getElementById('startRehearsalBtn').classList.remove('hidden');
+        document.getElementById('stopRehearsalBtn').classList.add('hidden');
+        document.getElementById('micIndicator').classList.remove('listening');
+        document.getElementById('micStatus').textContent = 'Microphone access denied. Grant permission and try again.';
+        document.getElementById('micStatus').style.color = 'var(--color-red)';
+        if (coachingEngine) { coachingEngine.reset(); coachingEngine = null; }
+        return;
+      }
+
+      const audioStarted = await audioEngine.start();
+      if (!audioStarted) {
+        isRehearsing = false;
+        document.getElementById('startRehearsalBtn').classList.remove('hidden');
+        document.getElementById('stopRehearsalBtn').classList.add('hidden');
+        document.getElementById('micIndicator').classList.remove('listening');
+        document.getElementById('micStatus').textContent = 'Could not access microphone. Check permissions.';
+        document.getElementById('micStatus').style.color = 'var(--color-red)';
+        if (coachingEngine) { coachingEngine.reset(); coachingEngine = null; }
+        return;
       }
 
       // Start timer
@@ -1062,12 +1083,19 @@
       loading.classList.add('hidden');
 
       if (result.error) {
-        // Show a default scorecard on error
+        // Show a default scorecard with error indication
         scorecardData = {
           clarity: 3, confidence: 3, specificity: 3, pace: 3,
-          topReminders: ['AI scoring unavailable'], openingFeedback: 'Could not analyze session.',
-          date: new Date().toISOString(), meetingType: selectedMeetingType, exchangeCount: 0
+          topReminders: ['Practice again for AI-powered feedback'],
+          openingFeedback: 'AI scoring was unavailable for this session. Scores shown are defaults.',
+          date: new Date().toISOString(), meetingType: selectedMeetingType, exchangeCount: 0,
+          _isFallback: true
         };
+        // Show error banner
+        const banner = document.createElement('div');
+        banner.style.cssText = 'background: rgba(255,170,0,0.1); border: 1px solid rgba(255,170,0,0.3); border-radius: 8px; padding: 10px 14px; margin-bottom: 16px; font-size: 13px; color: var(--color-amber);';
+        banner.textContent = 'AI scoring unavailable — showing default scores. ' + result.error;
+        document.getElementById('scorecardContent').prepend(banner);
       } else {
         scorecardData = result.scorecard;
       }
@@ -1107,7 +1135,6 @@
       remindersList.innerHTML = '';
       (sc.topReminders || []).forEach(r => {
         const li = document.createElement('li');
-        li.textContent = r;
         li.style.cssText = 'padding: 4px 0; font-size: 14px; line-height: 1.5;';
         li.innerHTML = '<span style="color: var(--color-amber); margin-right: 8px;">&bull;</span>' + escapeHtml(r);
         remindersList.appendChild(li);
@@ -1118,6 +1145,11 @@
     // Stage 5: Transition
     // =============================================
     function startTransition() {
+      // Clear any existing timer (e.g. if user navigated back and returned)
+      if (transitionTimer) {
+        clearInterval(transitionTimer);
+        transitionTimer = null;
+      }
       transitionSeconds = 10;
       updateTransitionDisplay();
 

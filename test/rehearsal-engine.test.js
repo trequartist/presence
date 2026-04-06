@@ -359,6 +359,48 @@ test('startRehearsal builds correct system prompt for each type', () => {
     assert.strictEqual(result.checklist.length, 0);
   });
 
+  // --- _checkAI guard ---
+
+  await testAsync('generateBriefing returns error when queryAI is null', async () => {
+    const engine = new RehearsalEngine(); // no queryAI
+    const result = await engine.generateBriefing({ title: 'Test' });
+    assert.ok(result.error);
+    assert.ok(result.error.includes('AI not available'));
+    assert.strictEqual(result.briefing, null);
+  });
+
+  await testAsync('processUserTurn returns error when queryAI is null', async () => {
+    const engine = new RehearsalEngine(); // no queryAI
+    engine.setup({ title: 'Test' });
+    engine.startRehearsal('general');
+    const result = await engine.processUserTurn('Hello');
+    assert.ok(result.error);
+    assert.ok(result.error.includes('AI not available'));
+  });
+
+  await testAsync('generateOpener returns error when queryAI is null', async () => {
+    const engine = new RehearsalEngine(); // no queryAI
+    engine.setup({ title: 'Test' });
+    engine.startRehearsal('general');
+    const result = await engine.generateOpener();
+    assert.ok(result.error);
+    assert.ok(result.error.includes('AI not available'));
+  });
+
+  await testAsync('generateScorecard returns error when queryAI is null and transcript has entries', async () => {
+    const engine = new RehearsalEngine(); // no queryAI
+    engine.setup({ title: 'Test' });
+    engine.startRehearsal('general');
+    engine._fullTranscript.push(
+      { role: 'ai', text: 'Hello', timestamp: Date.now() },
+      { role: 'user', text: 'Hi there', timestamp: Date.now() }
+    );
+    const result = await engine.generateScorecard();
+    assert.ok(result.error);
+    assert.ok(result.error.includes('AI not available'));
+    assert.strictEqual(result.scorecard, null);
+  });
+
   // --- getTranscript ---
 
   test('getTranscript returns a copy of the transcript', () => {

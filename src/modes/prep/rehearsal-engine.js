@@ -38,6 +38,20 @@ class RehearsalEngine {
   }
 
   /**
+   * Strip markdown code fences from AI JSON responses.
+   */
+  _cleanJsonResponse(text) {
+    return text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+  }
+
+  /**
+   * Clamp a score value to 1-5 range with a fallback for non-numbers.
+   */
+  _clampScore(value, fallback = 3) {
+    return Math.min(5, Math.max(1, typeof value === 'number' ? value : fallback));
+  }
+
+  /**
    * Check if AI is available.
    */
   _checkAI() {
@@ -87,8 +101,7 @@ Respond with ONLY valid JSON:
     }
 
     try {
-      const cleaned = result.text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-      return { briefing: JSON.parse(cleaned), error: null };
+      return { briefing: JSON.parse(this._cleanJsonResponse(result.text)), error: null };
     } catch (err) {
       return { briefing: null, error: 'Failed to parse briefing response' };
     }
@@ -243,13 +256,11 @@ Give a natural 1-2 sentence opening that sets the scene. For interviews, start w
       };
     }
 
+    const aiCheck = this._checkAI();
+    if (aiCheck) return { scorecard: null, ...aiCheck };
+
     // Truncate to last 20 turns to avoid hitting token limits on long rehearsals
     const recentTranscript = this._fullTranscript.slice(-20);
-
-    const userTurns = recentTranscript
-      .filter(t => t.role === 'user')
-      .map(t => t.text)
-      .join('\n\n');
 
     const fullConvo = recentTranscript
       .map(t => `${t.role === 'user' ? 'USER' : 'AI'}: ${t.text}`)
@@ -259,9 +270,6 @@ Give a natural 1-2 sentence opening that sets the scene. For interviews, start w
 
 Full conversation:
 ${fullConvo}
-
-User's statements only:
-${userTurns}
 
 Score each metric 1-5 and provide feedback. Respond with ONLY valid JSON:
 {
@@ -290,14 +298,13 @@ Scoring guide:
     }
 
     try {
-      const cleaned = result.text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-      const parsed = JSON.parse(cleaned);
+      const parsed = JSON.parse(this._cleanJsonResponse(result.text));
 
       const scorecard = {
-        clarity: Math.min(5, Math.max(1, typeof parsed.clarity === 'number' ? parsed.clarity : 3)),
-        confidence: Math.min(5, Math.max(1, typeof parsed.confidence === 'number' ? parsed.confidence : 3)),
-        specificity: Math.min(5, Math.max(1, typeof parsed.specificity === 'number' ? parsed.specificity : 3)),
-        pace: Math.min(5, Math.max(1, typeof parsed.pace === 'number' ? parsed.pace : 3)),
+        clarity: this._clampScore(parsed.clarity),
+        confidence: this._clampScore(parsed.confidence),
+        specificity: this._clampScore(parsed.specificity),
+        pace: this._clampScore(parsed.pace),
         topReminders: Array.isArray(parsed.topReminders) ? parsed.topReminders.slice(0, 2) : [],
         openingFeedback: parsed.openingFeedback || '',
         date: new Date().toISOString(),
