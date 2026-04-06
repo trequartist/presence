@@ -1,44 +1,622 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8">
-  <title>Presence — Coach Overlay</title>
-  <link rel="stylesheet" href="../../shared/styles/glassmorphism.css">
-  <style>
-    body { background: transparent; }
-    .container {
-      padding: 16px 20px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-    .mode-label {
-      font-size: 11px;
-      color: var(--color-green);
-      text-transform: uppercase;
-      letter-spacing: 1px;
-    }
-    .status {
-      font-size: 13px;
-      color: var(--color-text-muted);
-    }
-  </style>
+<meta charset="UTF-8">
+<link rel="stylesheet" href="../../shared/styles/glassmorphism.css">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    width: 100%; height: 100%;
+    overflow: hidden;
+    background: transparent;
+    user-select: none;
+    font-family: -apple-system, 'SF Pro Text', 'SF Pro Rounded', system-ui, sans-serif;
+  }
+
+  #container {
+    width: 100%; height: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  /* === COACHING BAR === */
+  #bar {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 8px 20px;
+    background: rgba(20, 20, 24, 0.88);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-radius: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: #e0e0e0;
+    -webkit-app-region: drag;
+    cursor: grab;
+    min-height: 56px;
+  }
+
+  #bar:active { cursor: grabbing; }
+
+  /* Mic dot */
+  #mic-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: #44dd88;
+    opacity: 0.2;
+    transition: opacity 0.15s ease;
+    flex-shrink: 0;
+  }
+  #mic-dot.active {
+    opacity: 1;
+    box-shadow: 0 0 6px rgba(68, 221, 136, 0.5);
+  }
+
+  /* WPM section */
+  #wpm-section {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    flex-shrink: 0;
+    min-width: 100px;
+  }
+
+  #wpm-number {
+    font-size: 26px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    transition: color 0.3s ease;
+    line-height: 1;
+  }
+
+  #wpm-unit {
+    font-size: 10px;
+    opacity: 0.4;
+    letter-spacing: 0.05em;
+  }
+
+  #wpm-zone {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    transition: color 0.3s ease;
+  }
+
+  /* Separator */
+  .sep {
+    width: 1px;
+    height: 28px;
+    background: rgba(255, 255, 255, 0.08);
+    flex-shrink: 0;
+  }
+
+  /* Talk-time section */
+  #talk-section {
+    flex: 0 0 140px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  #talk-bar-bg {
+    height: 5px;
+    border-radius: 3px;
+    background: rgba(255, 255, 255, 0.08);
+    overflow: hidden;
+  }
+
+  #talk-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    width: 0%;
+    transition: width 0.5s ease, background 0.5s ease;
+    background: #44dd88;
+  }
+
+  #talk-label {
+    font-size: 10px;
+    opacity: 0.4;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  /* Message section */
+  #message-section {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  #coaching-message {
+    font-size: 14px;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: color 0.3s ease, opacity 0.4s ease;
+    opacity: 0;
+  }
+
+  #coaching-message.visible { opacity: 1; }
+
+  /* Timer */
+  #timer {
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+    opacity: 0.3;
+    flex-shrink: 0;
+  }
+
+  /* === CARDS ROW (below bar) === */
+  #cards-row {
+    display: none;
+    gap: 6px;
+    padding: 0 4px;
+    overflow: hidden;
+  }
+
+  #cards-row.visible { display: flex; }
+
+  .card {
+    flex: 0 0 auto;
+    max-width: 260px;
+    padding: 8px 12px;
+    background: rgba(20, 20, 24, 0.88);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: #e0e0e0;
+    font-size: 11px;
+    line-height: 1.4;
+    display: none;
+  }
+
+  .card.active { display: block; }
+
+  .card-title {
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    opacity: 0.5;
+    margin-bottom: 4px;
+  }
+
+  .card-body {
+    white-space: pre-line;
+  }
+
+  #card-nav {
+    font-size: 10px;
+    opacity: 0.3;
+    padding: 4px 8px;
+    align-self: center;
+  }
+
+  /* === CHECKLIST ROW === */
+  #checklist-row {
+    display: none;
+    flex-wrap: wrap;
+    gap: 4px;
+    padding: 0 4px;
+  }
+
+  #checklist-row.visible { display: flex; }
+
+  .chip {
+    padding: 3px 10px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.6);
+    cursor: pointer;
+    -webkit-app-region: no-drag;
+    transition: background 0.2s, color 0.2s, border-color 0.2s;
+  }
+
+  .chip:hover { background: rgba(255, 255, 255, 0.1); }
+
+  .chip.checked {
+    background: rgba(68, 221, 136, 0.15);
+    border-color: rgba(68, 221, 136, 0.3);
+    color: #44dd88;
+    text-decoration: line-through;
+    opacity: 0.6;
+  }
+
+  /* === LIFELINE INPUT === */
+  #lifeline {
+    display: none;
+    padding: 0 4px;
+  }
+
+  #lifeline.visible { display: block; }
+
+  #lifeline-input {
+    width: 100%;
+    padding: 6px 12px;
+    background: rgba(20, 20, 24, 0.92);
+    border: 1px solid rgba(136, 170, 255, 0.3);
+    border-radius: 10px;
+    color: #e0e0e0;
+    font-family: inherit;
+    font-size: 13px;
+    outline: none;
+    -webkit-app-region: no-drag;
+  }
+
+  #lifeline-response {
+    padding: 6px 12px;
+    font-size: 12px;
+    color: #88aaff;
+    line-height: 1.4;
+    display: none;
+  }
+
+  /* Resize handle */
+  #resize-handle {
+    position: fixed;
+    bottom: 0; right: 0;
+    width: 16px; height: 16px;
+    cursor: se-resize;
+    -webkit-app-region: no-drag;
+    z-index: 20;
+    opacity: 0.2;
+  }
+
+  #resize-handle::after {
+    content: '';
+    position: absolute;
+    bottom: 4px; right: 4px;
+    width: 8px; height: 8px;
+    border-right: 2px solid rgba(255,255,255,0.4);
+    border-bottom: 2px solid rgba(255,255,255,0.4);
+  }
+
+  /* Not-running state */
+  #not-running {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 56px;
+    background: rgba(20, 20, 24, 0.88);
+    border-radius: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.3);
+    font-size: 13px;
+    -webkit-app-region: drag;
+    cursor: grab;
+  }
+</style>
 </head>
 <body>
-  <div class="glass-overlay container drag-handle">
-    <span class="status-dot active"></span>
-    <span class="mode-label">Meeting Coach</span>
-    <span class="status">Ready — Phase 2 will add full UI</span>
+  <div id="container">
+    <!-- Shown when session not active -->
+    <div id="not-running">Meeting Coach \u2014 start session from tray</div>
+
+    <!-- Coaching bar (hidden until session starts) -->
+    <div id="bar" style="display:none">
+      <div id="mic-dot"></div>
+
+      <div id="wpm-section">
+        <span id="wpm-number">--</span>
+        <span id="wpm-unit">WPM</span>
+        <span id="wpm-zone"></span>
+      </div>
+
+      <div class="sep"></div>
+
+      <div id="talk-section">
+        <div id="talk-bar-bg">
+          <div id="talk-bar-fill"></div>
+        </div>
+        <div id="talk-label">
+          <span id="talk-pct">0%</span>
+          <span>you talking</span>
+        </div>
+      </div>
+
+      <div class="sep"></div>
+
+      <div id="message-section">
+        <div id="coaching-message"></div>
+      </div>
+
+      <div id="timer">0:00</div>
+    </div>
+
+    <!-- Cue cards row -->
+    <div id="cards-row"></div>
+
+    <!-- Checklist row -->
+    <div id="checklist-row"></div>
+
+    <!-- Lifeline -->
+    <div id="lifeline">
+      <input id="lifeline-input" type="text" placeholder="Ask your prep...">
+      <div id="lifeline-response"></div>
+    </div>
   </div>
+
+  <div id="resize-handle"></div>
+
+  <script src="../../shared/audio-engine.js"></script>
+  <script src="../../shared/coaching-engine.js"></script>
   <script>
-    window.presence.onStateUpdate((state) => {
-      console.log('[Coach Overlay] State update received', state.activeMode);
+    // === DOM refs ===
+    const notRunningEl = document.getElementById('not-running');
+    const barEl = document.getElementById('bar');
+    const micDot = document.getElementById('mic-dot');
+    const wpmNumber = document.getElementById('wpm-number');
+    const wpmZone = document.getElementById('wpm-zone');
+    const talkFill = document.getElementById('talk-bar-fill');
+    const talkPct = document.getElementById('talk-pct');
+    const messageEl = document.getElementById('coaching-message');
+    const timerEl = document.getElementById('timer');
+    const cardsRow = document.getElementById('cards-row');
+    const checklistRow = document.getElementById('checklist-row');
+    const lifelineEl = document.getElementById('lifeline');
+    const lifelineInput = document.getElementById('lifeline-input');
+    const lifelineResponse = document.getElementById('lifeline-response');
+
+    // === State ===
+    let appState = {};
+    let audioEngine = null;
+    let coachingEngine = null;
+    let sessionActive = false;
+    let currentCardIndex = 0;
+
+    // === Format time ===
+    function formatTime(sec) {
+      const m = Math.floor(sec / 60);
+      const s = sec % 60;
+      return m + ':' + String(s).padStart(2, '0');
+    }
+
+    // === Update overlay UI from metrics ===
+    function updateUI(metrics, coaching) {
+      // WPM
+      wpmNumber.textContent = metrics.wpm || '--';
+      const zone = coachingEngine.getSpeedZone(metrics.wpm);
+      wpmNumber.style.color = zone.color;
+      wpmZone.textContent = zone.label;
+      wpmZone.style.color = zone.color;
+
+      // Talk-time bar
+      const pct = Math.min(metrics.talkPercent, 100);
+      talkFill.style.width = pct + '%';
+      talkFill.style.background = coachingEngine.getTalkColor(metrics.talkPercent);
+      talkPct.textContent = pct + '%';
+
+      // Coaching message
+      if (coaching && coaching.message) {
+        messageEl.textContent = coaching.message;
+        messageEl.style.color = coaching.color;
+        messageEl.classList.add('visible');
+      } else {
+        messageEl.classList.remove('visible');
+      }
+
+      // Mic dot
+      micDot.classList.toggle('active', metrics.isSpeaking);
+
+      // Timer
+      timerEl.textContent = formatTime(metrics.sessionDurationSec);
+    }
+
+    // === Session lifecycle ===
+    async function startSession() {
+      coachingEngine = new CoachingEngine({
+        monologueWarnSec: appState.monologueWarnSec || 60,
+        encourageIntervalMin: appState.encourageIntervalMin || 4
+      });
+
+      audioEngine = new AudioEngine({
+        sensitivity: appState.sensitivity || 0.5,
+        onUpdate: (metrics) => {
+          const coaching = coachingEngine.update(metrics);
+          updateUI(metrics, coaching);
+        }
+      });
+
+      const micOk = await window.presence.requestMicPermission();
+      if (!micOk) {
+        notRunningEl.textContent = 'Mic access denied \u2014 grant in System Settings > Privacy > Microphone';
+        return;
+      }
+
+      const started = await audioEngine.start();
+      if (!started) {
+        notRunningEl.textContent = 'Could not access microphone';
+        return;
+      }
+
+      sessionActive = true;
+      notRunningEl.style.display = 'none';
+      barEl.style.display = 'flex';
+
+      // Show cards if available
+      if (appState.prepCards && appState.prepCards.length > 0) {
+        renderCards(appState.prepCards);
+      }
+
+      // Show checklist if available
+      if (appState.checklist && appState.checklist.length > 0) {
+        renderChecklist(appState.checklist);
+      }
+    }
+
+    function stopSession() {
+      if (!audioEngine) return;
+      sessionActive = false;
+
+      const summary = audioEngine.stop();
+      summary.monologueWarnings = coachingEngine.monologueWarnings;
+      window.presence.sendSummary(summary);
+
+      barEl.style.display = 'none';
+      cardsRow.classList.remove('visible');
+      checklistRow.classList.remove('visible');
+      notRunningEl.textContent = 'Session ended \u2014 ' + formatTime(summary.durationSec) +
+        ' | Avg ' + summary.avgWpm + ' WPM | ' + summary.talkPercent + '% talking';
+      notRunningEl.style.display = 'flex';
+
+      audioEngine = null;
+      coachingEngine = null;
+    }
+
+    // === Cards ===
+    function renderCards(cards) {
+      cardsRow.innerHTML = '';
+      cards.forEach((card, i) => {
+        const el = document.createElement('div');
+        el.className = 'card' + (i === 0 ? ' active' : '');
+        el.innerHTML = '<div class="card-title">' + escapeHtml(card.title) + '</div>' +
+          '<div class="card-body">' + escapeHtml(card.body) + '</div>';
+        cardsRow.appendChild(el);
+      });
+
+      const nav = document.createElement('div');
+      nav.id = 'card-nav';
+      nav.textContent = '1/' + cards.length + ' \u2190\u2192';
+      cardsRow.appendChild(nav);
+
+      currentCardIndex = 0;
+      cardsRow.classList.add('visible');
+    }
+
+    function navigateCard(delta) {
+      const cards = cardsRow.querySelectorAll('.card');
+      if (cards.length === 0) return;
+
+      cards[currentCardIndex].classList.remove('active');
+      currentCardIndex = (currentCardIndex + delta + cards.length) % cards.length;
+      cards[currentCardIndex].classList.add('active');
+
+      const nav = document.getElementById('card-nav');
+      if (nav) nav.textContent = (currentCardIndex + 1) + '/' + cards.length + ' \u2190\u2192';
+    }
+
+    // === Checklist ===
+    function renderChecklist(items) {
+      checklistRow.innerHTML = '';
+      items.forEach((item, i) => {
+        const chip = document.createElement('div');
+        chip.className = 'chip' + (item.checked ? ' checked' : '');
+        chip.textContent = item.label;
+        chip.addEventListener('click', () => {
+          item.checked = !item.checked;
+          chip.classList.toggle('checked');
+        });
+        checklistRow.appendChild(chip);
+      });
+      checklistRow.classList.add('visible');
+    }
+
+    // === Lifeline ===
+    function toggleLifeline() {
+      const visible = lifelineEl.classList.toggle('visible');
+      if (visible) {
+        lifelineInput.focus();
+        lifelineResponse.style.display = 'none';
+        lifelineInput.value = '';
+      }
+    }
+
+    lifelineInput.addEventListener('keydown', async (e) => {
+      if (e.key === 'Escape') {
+        lifelineEl.classList.remove('visible');
+        return;
+      }
+      if (e.key !== 'Enter' || !lifelineInput.value.trim()) return;
+
+      const query = lifelineInput.value.trim();
+      lifelineInput.value = '';
+      lifelineResponse.textContent = 'Thinking...';
+      lifelineResponse.style.display = 'block';
+
+      try {
+        const resp = await callLifeline(query);
+        lifelineResponse.textContent = resp;
+        setTimeout(() => {
+          lifelineResponse.style.display = 'none';
+          lifelineEl.classList.remove('visible');
+        }, 8000);
+      } catch (err) {
+        lifelineResponse.textContent = 'Model unavailable';
+        setTimeout(() => lifelineResponse.style.display = 'none', 3000);
+      }
     });
-    window.presence.onSessionStart(() => {
-      console.log('[Coach Overlay] Session started');
+
+    async function callLifeline(query) {
+      const prepContext = appState.prepContext || appState.notes || '';
+      const systemPrompt = 'You are a meeting prep assistant. Answer in 1-2 sentences max. Be direct and specific.\n\nMeeting context:\n' + prepContext.slice(0, 4000);
+
+      // Route through main process AI client (API key never in renderer)
+      const result = await window.presence.queryAI(query, {
+        maxTokens: 150,
+        systemPrompt: systemPrompt
+      });
+
+      if (result.error) {
+        throw new Error(result.error);
+      }
+      return result.text;
+    }
+
+    // === Keyboard shortcuts ===
+    document.addEventListener('keydown', (e) => {
+      // Cmd+Left/Right to navigate cards
+      if (e.metaKey && e.key === 'ArrowLeft') { navigateCard(-1); e.preventDefault(); }
+      if (e.metaKey && e.key === 'ArrowRight') { navigateCard(1); e.preventDefault(); }
     });
-    window.presence.onSessionStop(() => {
-      console.log('[Coach Overlay] Session stopped');
+
+    // === Escape HTML ===
+    function escapeHtml(str) {
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    // === IPC ===
+    window.presence.onStateUpdate((newState) => {
+      // State is partitioned by mode — extract coach-specific state
+      const coachState = newState.coach || {};
+      appState = { ...appState, ...coachState };
+
+      // Live-update engine settings if running
+      if (audioEngine) {
+        audioEngine.setSensitivity(appState.sensitivity || 0.5);
+      }
+      if (coachingEngine) {
+        coachingEngine.monologueWarnSec = appState.monologueWarnSec || 60;
+        coachingEngine.encourageIntervalMin = appState.encourageIntervalMin || 4;
+      }
+
+      // Update cards if prep changed
+      if (appState.prepCards && sessionActive) {
+        renderCards(appState.prepCards);
+      }
+      if (appState.checklist && sessionActive) {
+        renderChecklist(appState.checklist);
+      }
+    });
+
+    window.presence.onSessionStart(() => startSession());
+    window.presence.onSessionStop(() => stopSession());
+
+    // Lifeline toggle via global shortcut (Cmd+Shift+L)
+    window.presence.onLifelineToggle(() => toggleLifeline());
+
+    // Card navigation via global shortcut (routed from main process)
+    window.presence.onCardNavigate((direction) => {
+      if (direction === 'prev') navigateCard(-1);
+      else if (direction === 'next') navigateCard(1);
     });
   </script>
 </body>
