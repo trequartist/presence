@@ -43,6 +43,12 @@ const CalendarBridge = require('./shared/calendar-bridge');
 
 const calendar = new CalendarBridge();
 
+const MAIN_WEB_PREFS = {
+  preload: path.join(__dirname, 'preload.js'),
+  contextIsolation: true,
+  nodeIntegration: false
+};
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -412,6 +418,11 @@ ipcMain.on('save-api-key', (event, key) => {
     process.env.GEMINI_API_KEY = key;
     aiClient.init(); // Re-initialize with new key
     console.log('[Presence] API key saved.');
+
+    // Notify settings window that AI status changed
+    if (settingsWindow && !settingsWindow.isDestroyed()) {
+      settingsWindow.webContents.send('api-key-saved', { aiAvailable: aiClient.isAvailable });
+    }
   } catch (err) {
     console.error('[Presence] Failed to save API key:', err.message);
   }
@@ -422,9 +433,12 @@ ipcMain.on('complete-setup', () => {
 });
 
 ipcMain.handle('get-app-info', () => {
+  const apiKey = process.env.GEMINI_API_KEY || '';
   return {
     version: app.getVersion(),
     aiAvailable: aiClient.isAvailable,
+    hasApiKey: apiKey.length > 0,
+    apiKeyHint: apiKey.length > 4 ? '••••••••' + apiKey.slice(-4) : '',
     calendarAvailable: calendar.isAvailable,
     platform: process.platform
   };
@@ -442,12 +456,6 @@ function showSettingsWindow() {
     return;
   }
 
-  const WEB_PREFS = {
-    preload: path.join(__dirname, 'preload.js'),
-    contextIsolation: true,
-    nodeIntegration: false
-  };
-
   settingsWindow = new BrowserWindow({
     width: 480,
     height: 520,
@@ -456,7 +464,7 @@ function showSettingsWindow() {
     alwaysOnTop: true,
     resizable: false,
     show: false,
-    webPreferences: { ...WEB_PREFS }
+    webPreferences: { ...MAIN_WEB_PREFS }
   });
 
   settingsWindow.loadFile(path.join(__dirname, 'windows', 'settings.html'));
@@ -470,12 +478,6 @@ function showShortcutsWindow() {
     return;
   }
 
-  const WEB_PREFS = {
-    preload: path.join(__dirname, 'preload.js'),
-    contextIsolation: true,
-    nodeIntegration: false
-  };
-
   shortcutsWindow = new BrowserWindow({
     width: 420,
     height: 460,
@@ -484,7 +486,7 @@ function showShortcutsWindow() {
     alwaysOnTop: true,
     resizable: false,
     show: false,
-    webPreferences: { ...WEB_PREFS }
+    webPreferences: { ...MAIN_WEB_PREFS }
   });
 
   shortcutsWindow.loadFile(path.join(__dirname, 'windows', 'shortcuts.html'));

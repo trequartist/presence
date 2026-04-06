@@ -245,6 +245,11 @@
     updateStatus('ai', info.aiAvailable, info.aiAvailable ? 'AI ready (Gemini)' : 'Set API key to enable AI features');
     updateStatus('cal', info.calendarAvailable, info.calendarAvailable ? 'Calendar connected' : 'Calendar unavailable (macOS only)');
 
+    // Show masked key hint if already configured
+    if (info.hasApiKey && info.apiKeyHint) {
+      apiKeyInput.placeholder = info.apiKeyHint + ' (key configured)';
+    }
+
     // Check mic
     try {
       const micGranted = await window.presence.requestMicPermission();
@@ -280,6 +285,14 @@
   // Allow Enter to save
   apiKeyInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') saveBtn.click();
+  });
+
+  // Listen for API key save confirmation from main process
+  window.presence.onStateUpdate(() => {
+    // Re-check app info to refresh status dots
+    window.presence.getAppInfo().then(info => {
+      updateStatus('ai', info.aiAvailable, info.aiAvailable ? 'AI ready (Gemini)' : 'Set API key to enable AI features');
+    });
   });
 
   init();
