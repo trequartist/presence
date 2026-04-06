@@ -82,26 +82,24 @@ class AIClient {
    * @returns {Promise<{cards: Array, checklist: Array, error: string|null}>}
    */
   async generateCards(context) {
-    const prompt = `Based on this meeting context, generate preparation cards and a checklist.
+    const prompt = `You are a meeting prep assistant. Given the following meeting prep context, generate:
 
-Context:
-${context}
+1. "cards" - An array of 8-10 cue cards. Each card has:
+   - "title": short category (e.g., "Quick Facts", "Theme: Speed", "Danger Zone", "Questions to Ask", "Your Angle")
+   - "body": 2-3 lines of bullet points (very concise, glanceable during a call)
 
-Respond with ONLY valid JSON in this exact format:
-{
-  "cards": [
-    {"title": "Card Title", "body": "Card content with key points"}
-  ],
-  "checklist": [
-    {"label": "Topic to cover", "checked": false}
-  ]
-}
+2. "checklist" - An array of 6-8 topic items to track during conversation. Each has:
+   - "label": short topic name (2-3 words)
+   - "checked": false
 
-Generate 3-6 cards covering key talking points, and 4-7 checklist items for topics to cover.`;
+Return ONLY valid JSON with keys "cards" and "checklist". No markdown, no explanation.
+
+Meeting prep context:
+${context.slice(0, 6000)}`;
 
     const result = await this.queryGemini(prompt, {
       maxTokens: 2048,
-      temperature: 0.5,
+      temperature: 0.3,
       systemPrompt: 'You are a meeting preparation assistant. Always respond with valid JSON only, no markdown formatting.'
     });
 

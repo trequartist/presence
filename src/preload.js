@@ -30,6 +30,10 @@ contextBridge.exposeInMainWorld('presence', {
   onSessionStop: onChannel('session-stop'),
   onSessionSummary: onChannel('session-summary'),
   sendSummary: (summary) => ipcRenderer.send('session-summary', summary),
+  onLifelineToggle: onChannel('lifeline-toggle'),
+  onCardNavigate: onChannel('card-navigate'),
+  onSessionFailed: onChannel('session-failed'),
+  sendSessionFailed: (reason) => ipcRenderer.send('session-failed', reason),
 
   // --- AI ---
   queryAI: (prompt, opts) => ipcRenderer.invoke('query-ai', prompt, opts),
