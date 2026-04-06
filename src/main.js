@@ -227,6 +227,15 @@ ipcMain.on('session-summary', (event, summary) => {
   withWindow('coach', 'editor', (win) => win.webContents.send('session-summary', summary));
 });
 
+ipcMain.on('session-failed', (event, reason) => {
+  withWindow('coach', 'editor', (win) => win.webContents.send('session-failed', reason));
+  // Auto-hide the coach overlay after a brief delay (targets coach specifically,
+  // not the active mode, in case the user switched modes during the timeout)
+  setTimeout(() => {
+    withWindow('coach', 'overlay', (win) => { if (win.isVisible()) win.hide(); });
+  }, 3000);
+});
+
 // AI (all queries go through main process — key never in renderer)
 ipcMain.handle('query-ai', async (event, prompt, opts) => {
   return await aiClient.queryGemini(prompt, opts);
