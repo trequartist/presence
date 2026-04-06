@@ -38,11 +38,7 @@
     "files": [
       "src/**/*",
       "assets/**/*",
-      "!**/*.md",
-      "!**/PHASE_6*"
-    ],
-    "extraResources": [
-      { "from": "assets/", "to": "assets/" }
+      "!**/*.md"
     ]
   },
   "author": "Anish",

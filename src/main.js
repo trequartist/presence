@@ -3,13 +3,14 @@ const path = require('path');
 const fs = require('fs');
 const os = require('os');
 
+const ENV_PATH = path.join(__dirname, '..', '.env');
+
 // ---------------------------------------------------------------------------
 // Load .env file (inline parser — no dotenv dependency)
 // ---------------------------------------------------------------------------
 function loadEnvFile() {
-  const envPath = path.join(__dirname, '..', '.env');
   try {
-    const content = fs.readFileSync(envPath, 'utf-8');
+    const content = fs.readFileSync(ENV_PATH, 'utf-8');
     for (const line of content.split('\n')) {
       const trimmed = line.trim();
       if (!trimmed || trimmed.startsWith('#')) continue;
@@ -53,6 +54,8 @@ const MAIN_WEB_PREFS = {
 // Helpers
 // ---------------------------------------------------------------------------
 let tray = null;
+let settingsWindow = null;
+let shortcutsWindow = null;
 
 function getActiveMode() {
   return stateManager.getState().activeMode || 'coach';
@@ -396,17 +399,20 @@ ipcMain.on('quit-app', () => app.quit());
 ipcMain.on('open-settings', () => showSettingsWindow());
 
 ipcMain.on('save-api-key', (event, key) => {
+  // Validate key at the IPC trust boundary
+  if (!key || typeof key !== 'string' || key.trim().length < 10) return;
+  key = key.trim();
+
   // Write to .env file
-  const envPath = path.join(__dirname, '..', '.env');
   try {
     let content = '';
-    try { content = fs.readFileSync(envPath, 'utf-8'); } catch { /* new file */ }
+    try { content = fs.readFileSync(ENV_PATH, 'utf-8'); } catch { /* new file */ }
 
     // Replace or append GEMINI_API_KEY
     const lines = content.split('\n');
     let found = false;
     for (let i = 0; i < lines.length; i++) {
-      if (lines[i].trim().startsWith('GEMINI_API_KEY')) {
+      if (/^GEMINI_API_KEY\s*=/.test(lines[i].trim())) {
         lines[i] = `GEMINI_API_KEY=${key}`;
         found = true;
         break;
@@ -414,15 +420,10 @@ ipcMain.on('save-api-key', (event, key) => {
     }
     if (!found) lines.push(`GEMINI_API_KEY=${key}`);
 
-    fs.writeFileSync(envPath, lines.join('\n'));
+    fs.writeFileSync(ENV_PATH, lines.join('\n'));
     process.env.GEMINI_API_KEY = key;
     aiClient.init(); // Re-initialize with new key
     console.log('[Presence] API key saved.');
-
-    // Notify settings window that AI status changed
-    if (settingsWindow && !settingsWindow.isDestroyed()) {
-      settingsWindow.webContents.send('api-key-saved', { aiAvailable: aiClient.isAvailable });
-    }
   } catch (err) {
     console.error('[Presence] Failed to save API key:', err.message);
   }
@@ -447,9 +448,6 @@ ipcMain.handle('get-app-info', () => {
 // ---------------------------------------------------------------------------
 // Settings & Shortcuts Windows
 // ---------------------------------------------------------------------------
-let settingsWindow = null;
-let shortcutsWindow = null;
-
 function showSettingsWindow() {
   if (settingsWindow && !settingsWindow.isDestroyed()) {
     settingsWindow.focus();
