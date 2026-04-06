@@ -4,6 +4,7 @@ const fs = require('fs');
 const os = require('os');
 
 const ENV_PATH = path.join(__dirname, '..', '.env');
+const CONFIG_DIR = path.join(os.homedir(), '.config', 'presence');
 
 // ---------------------------------------------------------------------------
 // Load .env file (inline parser — no dotenv dependency)
@@ -38,7 +39,7 @@ loadEnvFile();
 if (!process.env.GEMINI_API_KEY) {
   try {
     const configKey = fs.readFileSync(
-      path.join(os.homedir(), '.config', 'presence', 'api-key'), 'utf-8'
+      path.join(CONFIG_DIR, 'api-key'), 'utf-8'
     ).trim();
     if (configKey) process.env.GEMINI_API_KEY = configKey;
   } catch { /* No saved key — AI features will be unavailable */ }
@@ -188,8 +189,7 @@ app.whenReady().then(() => {
   if (app.dock) app.dock.hide();
 
   // Initialize state manager with ~/.config/presence/
-  const configDir = path.join(os.homedir(), '.config', 'presence');
-  stateManager.init(configDir);
+  stateManager.init(CONFIG_DIR);
 
   // Initialize AI client
   aiClient.init();
@@ -248,7 +248,7 @@ app.whenReady().then(() => {
   app.setLoginItemSettings({ openAtLogin: autoStart });
 
   console.log('[Presence] App ready. Tray icon active.');
-  console.log(`[Presence] State file: ${path.join(configDir, 'state.json')}`);
+  console.log(`[Presence] State file: ${path.join(CONFIG_DIR, 'state.json')}`);
   console.log(`[Presence] AI available: ${aiClient.isAvailable}`);
 
   // Check for first-run (show settings if setup not completed)
@@ -417,9 +417,8 @@ ipcMain.on('save-api-key', (event, key) => {
   // Also update .env for development mode
   try {
     // Save to config dir (same location as state.json)
-    const configDir = path.join(os.homedir(), '.config', 'presence');
-    fs.mkdirSync(configDir, { recursive: true });
-    fs.writeFileSync(path.join(configDir, 'api-key'), key, { mode: 0o600 });
+    fs.mkdirSync(CONFIG_DIR, { recursive: true });
+    fs.writeFileSync(path.join(CONFIG_DIR, 'api-key'), key, { mode: 0o600 });
 
     // Also try to update .env for dev mode (may fail in packaged app — that's OK)
     try {
