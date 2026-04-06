@@ -35,14 +35,14 @@ class CalendarBridge {
       return { meetings: [], error: null };
     }
 
-    // Return cached results if fresh (empty results are valid cache entries)
+    // Note: osascript dates are in local timezone (no offset). new Date() parses
+    // them as local time, which matches macOS Calendar behavior. If TZ env differs
+    // from macOS system timezone, comparisons may be off.
     const now = Date.now();
+
+    // Return cached results if fresh (empty results are valid cache entries)
     if (this._cache.fetchedAt > 0 && now - this._cache.fetchedAt < this._cacheTTLMs) {
-      const filtered = this._cache.meetings.filter(m => {
-        const startTime = new Date(m.startDate).getTime();
-        return startTime > now && startTime < now + withinMinutes * 60000;
-      });
-      return { meetings: filtered, error: null };
+      return { meetings: this._filterByWindow(this._cache.meetings, withinMinutes, now), error: null };
     }
 
     try {
@@ -54,12 +54,7 @@ class CalendarBridge {
 
       this._cache = { meetings: allMeetings, fetchedAt: now };
 
-      // Filter to requested window
-      const meetings = allMeetings.filter(m => {
-        const startTime = new Date(m.startDate).getTime();
-        return startTime > now && startTime < now + withinMinutes * 60000;
-      });
-      return { meetings, error: null };
+      return { meetings: this._filterByWindow(allMeetings, withinMinutes, now), error: null };
     } catch (err) {
       return { meetings: [], error: err.message || 'Failed to query calendar' };
     }
@@ -147,13 +142,27 @@ class CalendarBridge {
     return null;
   }
 
+  /**
+   * Filter meetings to those starting within the given window.
+   */
+  _filterByWindow(meetings, withinMinutes, now) {
+    now = now || Date.now();
+    return meetings.filter(m => {
+      const startTime = new Date(m.startDate).getTime();
+      return startTime > now && startTime < now + withinMinutes * 60000;
+    });
+  }
+
   // =============================================
   // AppleScript builders
   // =============================================
 
   _buildUpcomingScript(withinMinutes) {
     // AppleScript to get upcoming events from Calendar.app
+    // Only query if Calendar.app is already running (don't launch it)
     return `
+      if application "Calendar" is not running then return ""
+
       set now to current date
       set endTime to now + ${withinMinutes} * minutes
       set output to ""
@@ -206,6 +215,8 @@ class CalendarBridge {
 
   _buildDetailScript(eventId) {
     return `
+      if application "Calendar" is not running then return ""
+
       set output to ""
       tell application "Calendar"
         repeat with cal in calendars
@@ -309,40 +320,11 @@ class CalendarBridge {
 
   _parseDetailOutput(output) {
     if (!output || !output.trim()) return null;
-
-    const lines = output.split('\n');
-    const data = {};
-
-    for (const line of lines) {
-      const delimIdx = line.indexOf('|||');
-      if (delimIdx === -1) continue;
-      const key = line.slice(0, delimIdx).trim();
-      const value = line.slice(delimIdx + 3).trim();
-
-      switch (key) {
-        case 'TITLE': data.title = value; break;
-        case 'START': data.startDate = value; break;
-        case 'END': data.endDate = value; break;
-        case 'DESC': data.description = value; break;
-        case 'LOCATION': data.location = value; break;
-        case 'ATTENDEES': data.attendees = value; break;
-      }
-    }
-
-    if (!data.title) return null;
-
-    return {
-      title: data.title,
-      startDate: data.startDate || '',
-      endDate: data.endDate || '',
-      description: data.description || '',
-      location: data.location || '',
-      attendees: data.attendees || '',
-      meetingLink: this.extractMeetingLink(
-        (data.description || '') + ' ' + (data.location || '')
-      ),
-      inferredType: this.inferMeetingType(data.title)
-    };
+    const result = this._parseEventBlock(output);
+    if (!result) return null;
+    // Detail output has no ID field — strip it
+    const { id, ...context } = result;
+    return context;
   }
 
   // =============================================

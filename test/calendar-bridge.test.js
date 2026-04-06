@@ -274,19 +274,24 @@ EVENT_END`;
 
   await testAsync('getUpcomingMeetings uses cache within TTL', async () => {
     const bridge = new CalendarBridge();
-    bridge._isMacOS = false; // Won't actually call osascript
+    bridge._isMacOS = true; // Pretend macOS to test cache path
 
-    // Manually populate cache
-    const futureDate = new Date(Date.now() + 30 * 60000).toISOString();
-    bridge._cache = {
-      meetings: [{ id: 'cached-1', title: 'Cached Meeting', startDate: futureDate }],
-      fetchedAt: Date.now()
+    let osascriptCallCount = 0;
+    const futureDate = new Date(Date.now() + 10 * 60000).toISOString();
+    bridge._runOsascript = async () => {
+      osascriptCallCount++;
+      return `EVENT_START\nID|||test-1\nTITLE|||Cached Meeting\nSTART|||${futureDate}\nEND|||${futureDate}\nDESC|||\nLOCATION|||\nATTENDEES|||\nEVENT_END`;
     };
 
-    const result = await bridge.getUpcomingMeetings(60);
-    // On non-macOS, it returns empty regardless of cache
-    // This test verifies the non-macOS path returns cleanly
-    assert.strictEqual(result.error, null);
+    // First call should invoke osascript
+    const result1 = await bridge.getUpcomingMeetings(60);
+    assert.strictEqual(osascriptCallCount, 1);
+    assert.strictEqual(result1.meetings.length, 1);
+
+    // Second call within TTL should use cache (no additional osascript call)
+    const result2 = await bridge.getUpcomingMeetings(60);
+    assert.strictEqual(osascriptCallCount, 1); // Still 1 — cache hit
+    assert.strictEqual(result2.meetings.length, 1);
   });
 
   // --- clearCache ---

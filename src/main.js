@@ -207,7 +207,7 @@ app.whenReady().then(() => {
 // Calendar Auto-Surface
 // ---------------------------------------------------------------------------
 let calendarPollInterval = null;
-let lastNotifiedMeetingId = null;
+let lastNotifiedMeetingKey = null; // "id|startDate" to handle recurring events
 
 function startCalendarPolling() {
   // Check every 60 seconds for meetings starting within 15 minutes
@@ -218,9 +218,10 @@ function startCalendarPolling() {
 
       const meeting = result.meeting;
 
-      // Don't notify for the same meeting twice
-      if (meeting.id === lastNotifiedMeetingId) return;
-      lastNotifiedMeetingId = meeting.id;
+      // Don't notify for the same occurrence twice (id+startDate handles recurring events)
+      const meetingKey = `${meeting.id}|${meeting.startDate}`;
+      if (meetingKey === lastNotifiedMeetingKey) return;
+      lastNotifiedMeetingKey = meetingKey;
 
       // Show notification
       const notification = new Notification({
@@ -234,20 +235,14 @@ function startCalendarPolling() {
       notification.on('click', () => {
         // Pre-fill prep state with calendar context and switch to prep mode
         stateManager.updateState({
-          prep: {
-            calendarContext: {
-              id: meeting.id,
-              title: meeting.title,
-              attendees: meeting.attendees,
-              description: meeting.description,
-              location: meeting.location,
-              meetingLink: meeting.meetingLink,
-              startDate: meeting.startDate,
-              inferredType: meeting.inferredType
-            }
-          }
+          prep: { calendarContext: { ...meeting } }
         });
         switchToMode('prep');
+        // Clear calendar context after a short delay so the renderer has time to read it.
+        // This prevents stale context from persisting if the app crashes.
+        setTimeout(() => {
+          stateManager.updateState({ prep: { calendarContext: null } });
+        }, 3000);
       });
 
       notification.show();
