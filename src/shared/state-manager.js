@@ -21,6 +21,7 @@ const DEFAULT_STATE = {
     speed: 1.5,
     fontSize: 22,
     opacity: 0.82,
+    isScrolling: false,
     scrollOffset: 0,
     voiceTrackingEnabled: false,
     sections: [],

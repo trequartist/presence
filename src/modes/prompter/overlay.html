@@ -1,38 +1,506 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8">
-  <title>Presence — Prompter Overlay</title>
-  <link rel="stylesheet" href="../../shared/styles/glassmorphism.css">
-  <style>
-    body { background: transparent; }
-    .container {
-      padding: 16px 20px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-    .mode-label {
-      font-size: 11px;
-      color: var(--color-blue);
-      text-transform: uppercase;
-      letter-spacing: 1px;
-    }
-    .status {
-      font-size: 13px;
-      color: var(--color-text-muted);
-    }
-  </style>
+<meta charset="UTF-8">
+<link rel="stylesheet" href="../../shared/styles/glassmorphism.css">
+<style>
+  html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: transparent;
+    -webkit-app-region: drag;
+    cursor: grab;
+  }
+
+  body:active { cursor: grabbing; }
+
+  #container {
+    width: 100%;
+    height: 100%;
+    border-radius: var(--radius-overlay);
+    overflow: hidden;
+    position: relative;
+  }
+
+  #bg {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.82);
+    border-radius: var(--radius-overlay);
+    border: var(--border-subtle);
+  }
+
+  #text-wrapper {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    border-radius: var(--radius-overlay);
+  }
+
+  #text {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    padding: 20px;
+    font-family: var(--font-family);
+    font-size: 22px;
+    font-weight: 500;
+    color: white;
+    line-height: 1.5;
+    letter-spacing: 0.01em;
+    transition: none;
+    white-space: pre-wrap;
+  }
+
+  /* Sentence spans for voice tracking highlight */
+  #text .sentence {
+    transition: opacity var(--transition-fast);
+  }
+  #text .sentence.past { opacity: 0.3; }
+  #text .sentence.current { opacity: 1.0; }
+  #text .sentence.future { opacity: 0.6; }
+
+  /* Top and bottom fade */
+  #fade-top, #fade-bottom {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 20px;
+    z-index: 10;
+    pointer-events: none;
+    border-radius: var(--radius-overlay);
+  }
+
+  #fade-top {
+    top: 0;
+    background: linear-gradient(to bottom, rgba(0,0,0,0.6), transparent);
+  }
+
+  #fade-bottom {
+    bottom: 0;
+    background: linear-gradient(to top, rgba(0,0,0,0.6), transparent);
+  }
+
+  /* Section markers bar */
+  #sections-bar {
+    position: absolute;
+    bottom: 8px;
+    left: 12px;
+    right: 12px;
+    z-index: 15;
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    -webkit-app-region: no-drag;
+    pointer-events: auto;
+  }
+
+  .section-pill {
+    padding: 2px 8px;
+    border-radius: var(--radius-pill);
+    background: rgba(136, 170, 255, 0.15);
+    border: 1px solid rgba(136, 170, 255, 0.25);
+    color: var(--color-blue);
+    font-size: 10px;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    white-space: nowrap;
+  }
+
+  .section-pill:hover {
+    background: rgba(136, 170, 255, 0.3);
+  }
+
+  .section-pill.active {
+    background: rgba(136, 170, 255, 0.3);
+    border-color: rgba(136, 170, 255, 0.5);
+  }
+
+  /* Pace indicator */
+  #pace-indicator {
+    position: absolute;
+    top: 6px;
+    right: 12px;
+    z-index: 15;
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: var(--radius-pill);
+    pointer-events: none;
+  }
+
+  #pace-indicator.on-track {
+    color: var(--color-green);
+    background: rgba(68, 221, 136, 0.12);
+  }
+  #pace-indicator.ahead {
+    color: var(--color-amber);
+    background: rgba(255, 170, 0, 0.12);
+  }
+  #pace-indicator.behind {
+    color: var(--color-red);
+    background: rgba(255, 68, 68, 0.12);
+  }
+
+  /* Voice tracking status dot */
+  #voice-status {
+    position: absolute;
+    top: 8px;
+    left: 12px;
+    z-index: 15;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 10px;
+    color: var(--color-text-muted);
+    pointer-events: none;
+  }
+
+  #voice-status .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--color-red);
+    animation: pulse 1.5s ease-in-out infinite;
+  }
+
+  /* Resize handle */
+  #resize-handle {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 16px;
+    height: 16px;
+    cursor: se-resize;
+    -webkit-app-region: no-drag;
+    z-index: 20;
+    opacity: 0.3;
+  }
+
+  #resize-handle::after {
+    content: '';
+    position: absolute;
+    bottom: 4px;
+    right: 4px;
+    width: 8px;
+    height: 8px;
+    border-right: 2px solid rgba(255,255,255,0.5);
+    border-bottom: 2px solid rgba(255,255,255,0.5);
+  }
+</style>
 </head>
 <body>
-  <div class="glass-overlay container drag-handle">
-    <span class="status-dot" style="background: var(--color-blue); box-shadow: 0 0 6px var(--color-blue);"></span>
-    <span class="mode-label">Teleprompter</span>
-    <span class="status">Ready — Phase 3 will add full UI</span>
+  <div id="container">
+    <div id="bg"></div>
+    <div id="text-wrapper">
+      <div id="fade-top"></div>
+      <div id="text"></div>
+      <div id="fade-bottom"></div>
+    </div>
+    <div id="voice-status" style="display:none;">
+      <span class="dot"></span>
+      <span>Tracking</span>
+    </div>
+    <div id="pace-indicator" style="display:none;"></div>
+    <div id="sections-bar"></div>
+    <div id="resize-handle"></div>
   </div>
+
+  <script src="scroll-engine.js"></script>
   <script>
-    window.presence.onStateUpdate((state) => {
-      console.log('[Prompter Overlay] State update received', state.activeMode);
+    const textEl = document.getElementById('text');
+    const bgEl = document.getElementById('bg');
+    const sectionsBar = document.getElementById('sections-bar');
+    const paceIndicator = document.getElementById('pace-indicator');
+    const voiceStatus = document.getElementById('voice-status');
+
+    const scrollEngine = new ScrollEngine();
+
+    let state = {
+      text: '',
+      speed: 1.5,
+      fontSize: 22,
+      opacity: 0.82,
+      isScrolling: false,
+      scrollOffset: 0,
+      voiceTrackingEnabled: false,
+      sections: []
+    };
+
+    let animFrame = null;
+    let lastTime = 0;
+    let scrollStartTime = 0;
+    let isVoiceActive = false;
+    let cachedSectionPills = [];
+    let lastRenderedText = '';
+    let lastRenderedIdx = -1;
+    let lastRenderedFontSize = 0;
+    let lastRenderedVoiceActive = false;
+
+    // ── Rendering ──────────────────────────────────────────────────────────
+
+    function renderText() {
+      const currentIdx = isVoiceActive ? scrollEngine.currentIndex : -1;
+      const needsRebuild = state.text !== lastRenderedText ||
+                           currentIdx !== lastRenderedIdx ||
+                           state.fontSize !== lastRenderedFontSize ||
+                           isVoiceActive !== lastRenderedVoiceActive;
+
+      if (!needsRebuild) return;
+
+      lastRenderedText = state.text;
+      lastRenderedIdx = currentIdx;
+      lastRenderedFontSize = state.fontSize;
+      lastRenderedVoiceActive = isVoiceActive;
+
+      if (isVoiceActive && scrollEngine.sentences.length > 0) {
+        // Voice tracking mode: render sentences with highlight classes
+        textEl.innerHTML = '';
+        scrollEngine.sentences.forEach((s, i) => {
+          const span = document.createElement('span');
+          span.className = 'sentence';
+          if (i < currentIdx) span.classList.add('past');
+          else if (i === currentIdx) span.classList.add('current');
+          else span.classList.add('future');
+          span.textContent = s.text + ' ';
+          span.dataset.index = i;
+          textEl.appendChild(span);
+        });
+      } else {
+        textEl.textContent = state.text;
+      }
+      textEl.style.fontSize = state.fontSize + 'px';
+    }
+
+    function renderSections() {
+      const sections = ScrollEngine.parseSections(state.text, scrollEngine.sentences);
+      state.sections = sections;
+      sectionsBar.innerHTML = '';
+
+      if (sections.length === 0) return;
+
+      cachedSectionPills = [];
+      sections.forEach((section, i) => {
+        const pill = document.createElement('span');
+        pill.className = 'section-pill';
+        pill.textContent = section.name;
+        pill.addEventListener('click', () => {
+          jumpToSection(i);
+        });
+        sectionsBar.appendChild(pill);
+        cachedSectionPills.push(pill);
+      });
+    }
+
+    function updateSectionHighlight() {
+      const currentIdx = scrollEngine.currentIndex;
+      cachedSectionPills.forEach((pill, i) => {
+        pill.classList.remove('active');
+        if (i < state.sections.length) {
+          if (state.sections[i].sentenceIndex <= currentIdx &&
+              (i + 1 >= state.sections.length || state.sections[i + 1].sentenceIndex > currentIdx)) {
+            pill.classList.add('active');
+          }
+        }
+      });
+    }
+
+    function updatePaceIndicator() {
+      if (!state.isScrolling || !state.text.trim()) {
+        paceIndicator.style.display = 'none';
+        return;
+      }
+
+      const totalDuration = ScrollEngine.estimateDuration(state.text);
+      if (totalDuration === 0) {
+        paceIndicator.style.display = 'none';
+        return;
+      }
+
+      const elapsed = (performance.now() - scrollStartTime) / 1000;
+      const maxScroll = textEl.scrollHeight - window.innerHeight + 40;
+      if (maxScroll <= 0) {
+        paceIndicator.style.display = 'none';
+        return;
+      }
+
+      const expectedProgress = elapsed / totalDuration;
+      const actualProgress = state.scrollOffset / maxScroll;
+      const ratio = actualProgress / Math.max(expectedProgress, 0.01);
+
+      paceIndicator.style.display = '';
+      paceIndicator.className = '';
+
+      if (ratio > 1.2) {
+        paceIndicator.textContent = 'Ahead';
+        paceIndicator.classList.add('ahead');
+      } else if (ratio < 0.8) {
+        paceIndicator.textContent = 'Behind';
+        paceIndicator.classList.add('behind');
+      } else {
+        paceIndicator.textContent = 'On track';
+        paceIndicator.classList.add('on-track');
+      }
+    }
+
+    // ── Scrolling ──────────────────────────────────────────────────────────
+
+    function tick(time) {
+      if (!lastTime) lastTime = time;
+      const dt = (time - lastTime) / 1000;
+      lastTime = time;
+
+      if (state.isScrolling && !isVoiceActive) {
+        // Auto-scroll: speed * 30 pixels per second
+        state.scrollOffset += state.speed * 30 * dt;
+
+        const maxScroll = textEl.scrollHeight - window.innerHeight + 40;
+        if (state.scrollOffset > maxScroll) {
+          state.scrollOffset = maxScroll;
+          state.isScrolling = false;
+          scrollStartTime = 0;
+          window.presence.updateState({ prompter: { isScrolling: false, scrollOffset: state.scrollOffset } });
+        }
+      }
+
+      textEl.style.transform = `translateY(${-state.scrollOffset}px)`;
+      bgEl.style.background = `rgba(0, 0, 0, ${state.opacity})`;
+
+      updatePaceIndicator();
+      if (isVoiceActive) updateSectionHighlight();
+
+      animFrame = requestAnimationFrame(tick);
+    }
+
+    animFrame = requestAnimationFrame(tick);
+
+    // ── Section jump ───────────────────────────────────────────────────────
+
+    function jumpToSection(sectionIndex) {
+      if (sectionIndex >= state.sections.length) return;
+      const section = state.sections[sectionIndex];
+
+      if (isVoiceActive) {
+        // In voice mode, jump to the sentence index
+        scrollEngine.setCurrentIndex(section.sentenceIndex);
+        scrollToSentence(section.sentenceIndex);
+      } else {
+        // In auto-scroll mode, estimate pixel offset from character offset
+        const totalChars = state.text.length;
+        const totalHeight = textEl.scrollHeight;
+        const maxScroll = Math.max(0, totalHeight - window.innerHeight + 40);
+        const ratio = section.startOffset / Math.max(totalChars, 1);
+        state.scrollOffset = Math.min(ratio * totalHeight, maxScroll);
+        window.presence.updateState({ prompter: { scrollOffset: state.scrollOffset } });
+      }
+    }
+
+    // ── Voice tracking ─────────────────────────────────────────────────────
+
+    function scrollToSentence(index) {
+      // Rebuild DOM first so spans match current sentences, then compute offsets
+      renderText();
+      const spans = textEl.querySelectorAll('.sentence');
+      if (index < spans.length) {
+        const span = spans[index];
+        const spanTop = span.offsetTop;
+        const targetOffset = Math.max(0, spanTop - window.innerHeight / 3);
+        state.scrollOffset = targetOffset;
+      }
+    }
+
+    function startVoiceTracking() {
+      scrollEngine.prepareSentences(state.text);
+      if (scrollEngine.sentences.length === 0) return;
+
+      renderSections();
+
+      const started = scrollEngine.startVoiceTracking(
+        (sentenceIndex) => {
+          scrollToSentence(sentenceIndex);
+        },
+        (status) => {
+          if (status === 'listening') {
+            voiceStatus.style.display = 'flex';
+          } else {
+            voiceStatus.style.display = 'none';
+            if (status === 'error') {
+              isVoiceActive = false;
+              renderText();
+            }
+          }
+        }
+      );
+
+      if (started) {
+        isVoiceActive = true;
+        renderText();
+      }
+    }
+
+    function stopVoiceTracking() {
+      scrollEngine.stopVoiceTracking();
+      scrollEngine.reset();
+      isVoiceActive = false;
+      voiceStatus.style.display = 'none';
+      renderText();
+    }
+
+    // ── State sync ─────────────────────────────────────────────────────────
+
+    let initialLoad = true;
+
+    window.presence.onStateUpdate((newState) => {
+      const prompterState = newState.prompter || {};
+
+      // On initial load, reset ephemeral state to safe defaults.
+      // Voice tracking and scrolling should not auto-start on app launch.
+      // Note: setting these to false here means voiceToggled (below) will
+      // compare false vs false (local default), so startVoiceTracking() won't fire.
+      if (initialLoad) {
+        initialLoad = false;
+        prompterState.voiceTrackingEnabled = false;
+        prompterState.isScrolling = false;
+      }
+
+      const textChanged = prompterState.text !== undefined && prompterState.text !== state.text;
+      const voiceToggled = prompterState.voiceTrackingEnabled !== undefined &&
+                           prompterState.voiceTrackingEnabled !== state.voiceTrackingEnabled;
+
+      // Merge prompter state, but preserve local scrollOffset during auto-scroll
+      // to avoid jumps from stale persisted values
+      const liveScrollOffset = state.scrollOffset;
+      const wasScrolling = state.isScrolling;
+      Object.assign(state, prompterState);
+      if (wasScrolling && state.isScrolling && prompterState.scrollOffset !== undefined) {
+        // During active scrolling, keep the live animation offset
+        state.scrollOffset = liveScrollOffset;
+      }
+
+      // Track scroll start time
+      if (prompterState.isScrolling === true && !scrollStartTime) {
+        scrollStartTime = performance.now();
+      } else if (prompterState.isScrolling === false) {
+        scrollStartTime = 0;
+      }
+
+      // Handle voice tracking toggle
+      if (voiceToggled) {
+        if (state.voiceTrackingEnabled) {
+          startVoiceTracking();
+        } else {
+          stopVoiceTracking();
+        }
+      }
+
+      // Re-prepare sentences and sections if text changed
+      if (textChanged) {
+        scrollEngine.prepareSentences(state.text);
+        renderSections();
+      }
+
+      renderText();
     });
   </script>
 </body>
