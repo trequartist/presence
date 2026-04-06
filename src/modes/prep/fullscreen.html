@@ -1301,6 +1301,21 @@
           });
         }
 
+        // Pre-fill goals based on meeting type (Phase 5c: context enrichment)
+        if (calCtx.inferredType) {
+          const goalSuggestions = {
+            'interview': 'Present experience clearly\nAsk about team culture and role expectations\nDemonstrate problem-solving approach',
+            'sales-pitch': 'Demo key features relevant to their needs\nAddress potential objections\nEstablish clear next steps',
+            'negotiation': 'Know your BATNA and walk-away point\nListen actively for underlying interests\nAim for win-win outcomes',
+            '1-1-networking': 'Build genuine rapport\nShare relevant updates\nIdentify ways to help each other'
+          };
+          const goals = goalSuggestions[calCtx.inferredType];
+          if (goals) {
+            const goalsEl = document.getElementById('meetingGoals');
+            if (goalsEl && !goalsEl.value) goalsEl.value = goals;
+          }
+        }
+
         // Set calendar start date for header countdown
         if (calCtx.startDate) {
           calendarStartDate = calCtx.startDate;
@@ -1314,9 +1329,9 @@
       }
     }
 
-    // Initialize
-    loadCalendarContext();
+    // Initialize — showStage first to ensure DOM is ready, then auto-fill from calendar
     showStage(1);
+    loadCalendarContext();
   </script>
 </body>
 </html>
