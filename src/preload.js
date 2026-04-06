@@ -46,6 +46,12 @@ contextBridge.exposeInMainWorld('presence', {
   // --- Audio ---
   requestMicPermission: () => ipcRenderer.invoke('request-mic-permission'),
 
+  // --- Settings ---
+  openSettings: () => ipcRenderer.send('open-settings'),
+  saveApiKey: (key) => ipcRenderer.send('save-api-key', key),
+  completeSetup: () => ipcRenderer.send('complete-setup'),
+  getAppInfo: () => ipcRenderer.invoke('get-app-info'),
+
   // --- Window controls ---
   toggleOverlay: () => ipcRenderer.send('toggle-overlay'),
   closeEditor: () => ipcRenderer.send('close-editor'),

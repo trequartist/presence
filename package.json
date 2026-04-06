@@ -1,15 +1,49 @@
 {
   "name": "presence",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Unified macOS menubar app: Meeting Coach + Smart Teleprompter + Pre-Meeting Prep",
   "main": "src/main.js",
   "scripts": {
     "start": "unset ELECTRON_RUN_AS_NODE && electron .",
     "dev": "unset ELECTRON_RUN_AS_NODE && ELECTRON_ENABLE_LOGGING=1 electron .",
-    "test": "node test/state-manager.test.js && node test/ai-client.test.js && node test/rehearsal-engine.test.js && node test/coaching-engine.test.js && node test/scroll-engine.test.js && node test/calendar-bridge.test.js"
+    "test": "node test/state-manager.test.js && node test/ai-client.test.js && node test/rehearsal-engine.test.js && node test/coaching-engine.test.js && node test/scroll-engine.test.js && node test/calendar-bridge.test.js",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder --mac"
   },
-  "dependencies": {
-    "electron": "^41.0.2"
+  "devDependencies": {
+    "electron": "^41.0.2",
+    "electron-builder": "^26.0.0"
+  },
+  "build": {
+    "appId": "com.presence.app",
+    "productName": "Presence",
+    "mac": {
+      "category": "public.app-category.productivity",
+      "icon": "assets/icon.icns",
+      "target": [
+        { "target": "dmg", "arch": ["arm64", "x64"] }
+      ],
+      "hardenedRuntime": true,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist"
+    },
+    "dmg": {
+      "title": "Presence",
+      "iconSize": 80,
+      "contents": [
+        { "x": 130, "y": 220 },
+        { "x": 410, "y": 220, "type": "link", "path": "/Applications" }
+      ]
+    },
+    "files": [
+      "src/**/*",
+      "assets/**/*",
+      "!**/*.md",
+      "!**/PHASE_6*"
+    ],
+    "extraResources": [
+      { "from": "assets/", "to": "assets/" }
+    ]
   },
   "author": "Anish",
   "license": "MIT"

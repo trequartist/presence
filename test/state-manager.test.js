@@ -253,6 +253,38 @@ test('updateState with empty object does not break state', () => {
   assert.strictEqual(state.coach.sensitivity, 0.5);
 });
 
+// --- Settings state (Phase 6) ---
+
+test('default state includes settings with hasCompletedSetup and autoStartEnabled', () => {
+  const sm = createFreshStateManager();
+  sm.init(tmpDir);
+  const state = sm.getState();
+  assert.strictEqual(state.settings.hasCompletedSetup, false);
+  assert.strictEqual(state.settings.autoStartEnabled, false);
+});
+
+test('updateState merges settings without wiping other settings fields', () => {
+  const sm = createFreshStateManager();
+  sm.init(tmpDir);
+  sm.updateState({ settings: { hasCompletedSetup: true } });
+  const state = sm.getState();
+  assert.strictEqual(state.settings.hasCompletedSetup, true);
+  assert.strictEqual(state.settings.autoStartEnabled, false); // preserved
+});
+
+test('settings persist across init cycles', () => {
+  const sm1 = createFreshStateManager();
+  sm1.init(tmpDir);
+  sm1.updateState({ settings: { hasCompletedSetup: true, autoStartEnabled: true } });
+  sm1.flush();
+
+  const sm2 = createFreshStateManager();
+  sm2.init(tmpDir);
+  const state = sm2.getState();
+  assert.strictEqual(state.settings.hasCompletedSetup, true);
+  assert.strictEqual(state.settings.autoStartEnabled, true);
+});
+
 // --- Summary ---
 
 console.log(`\n${passCount}/${testCount} tests passed.\n`);

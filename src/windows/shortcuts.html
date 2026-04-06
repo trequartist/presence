@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Keyboard Shortcuts</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif;
+      background: rgba(18, 18, 24, 0.96);
+      color: #e0e0e0;
+      border-radius: 12px;
+      overflow: hidden;
+      -webkit-app-region: drag;
+      user-select: none;
+    }
+    .container { padding: 24px; }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    .header h1 { font-size: 18px; font-weight: 600; color: #fff; }
+    .close-btn {
+      -webkit-app-region: no-drag;
+      background: rgba(255,255,255,0.08);
+      border: none;
+      color: #999;
+      font-size: 18px;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .close-btn:hover { background: rgba(255,255,255,0.15); color: #fff; }
+
+    .section-title {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #888;
+      margin-bottom: 8px;
+      margin-top: 16px;
+    }
+    .section-title:first-of-type { margin-top: 0; }
+
+    .shortcut-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+    }
+    .shortcut-row:last-child { border-bottom: none; }
+    .shortcut-label { font-size: 13px; color: #ccc; }
+    .shortcut-keys {
+      display: flex;
+      gap: 4px;
+    }
+    .key {
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 5px;
+      padding: 3px 8px;
+      font-size: 12px;
+      font-family: 'SF Mono', 'Menlo', monospace;
+      color: #ddd;
+      min-width: 24px;
+      text-align: center;
+    }
+    .hint {
+      font-size: 11px;
+      color: #555;
+      margin-top: 16px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Keyboard Shortcuts</h1>
+      <button class="close-btn" id="closeBtn">&times;</button>
+    </div>
+
+    <div class="section-title">Global (works from any app)</div>
+
+    <div class="shortcut-row">
+      <span class="shortcut-label">Toggle Meeting Coach overlay</span>
+      <div class="shortcut-keys"><span class="key">&#8984;</span><span class="key">&#8679;</span><span class="key">M</span></div>
+    </div>
+    <div class="shortcut-row">
+      <span class="shortcut-label">Toggle Teleprompter overlay</span>
+      <div class="shortcut-keys"><span class="key">&#8984;</span><span class="key">&#8679;</span><span class="key">P</span></div>
+    </div>
+    <div class="shortcut-row">
+      <span class="shortcut-label">Open Pre-Meeting Prep</span>
+      <div class="shortcut-keys"><span class="key">&#8984;</span><span class="key">&#8679;</span><span class="key">R</span></div>
+    </div>
+    <div class="shortcut-row">
+      <span class="shortcut-label">Lifeline (coach mode)</span>
+      <div class="shortcut-keys"><span class="key">&#8984;</span><span class="key">&#8679;</span><span class="key">L</span></div>
+    </div>
+
+    <div class="section-title">Meeting Coach</div>
+
+    <div class="shortcut-row">
+      <span class="shortcut-label">Previous cue card</span>
+      <div class="shortcut-keys"><span class="key">&#8984;</span><span class="key">&#8592;</span></div>
+    </div>
+    <div class="shortcut-row">
+      <span class="shortcut-label">Next cue card</span>
+      <div class="shortcut-keys"><span class="key">&#8984;</span><span class="key">&#8594;</span></div>
+    </div>
+
+    <div class="section-title">Pre-Meeting Prep</div>
+
+    <div class="shortcut-row">
+      <span class="shortcut-label">Next stage</span>
+      <div class="shortcut-keys"><span class="key">Enter</span></div>
+    </div>
+    <div class="shortcut-row">
+      <span class="shortcut-label">Exit prep / stop rehearsal</span>
+      <div class="shortcut-keys"><span class="key">Esc</span></div>
+    </div>
+
+    <div class="hint">Click anywhere outside to dismiss</div>
+  </div>
+
+  <script>
+    document.getElementById('closeBtn').addEventListener('click', () => window.close());
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') window.close();
+    });
+  </script>
+</body>
+</html>

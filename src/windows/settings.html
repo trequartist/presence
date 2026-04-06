@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Presence Settings</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif;
+      background: rgba(18, 18, 24, 0.96);
+      color: #e0e0e0;
+      border-radius: 12px;
+      overflow: hidden;
+      -webkit-app-region: drag;
+      user-select: none;
+    }
+    .container {
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+    }
+    .header h1 {
+      font-size: 20px;
+      font-weight: 600;
+      color: #fff;
+    }
+    .close-btn {
+      -webkit-app-region: no-drag;
+      background: rgba(255,255,255,0.08);
+      border: none;
+      color: #999;
+      font-size: 18px;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .close-btn:hover { background: rgba(255,255,255,0.15); color: #fff; }
+
+    .section {
+      margin-bottom: 20px;
+    }
+    .section-title {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #888;
+      margin-bottom: 8px;
+    }
+    .input-group {
+      -webkit-app-region: no-drag;
+    }
+    .input-group label {
+      display: block;
+      font-size: 13px;
+      color: #aaa;
+      margin-bottom: 4px;
+    }
+    .input-group input {
+      width: 100%;
+      padding: 10px 12px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px;
+      color: #fff;
+      font-size: 14px;
+      font-family: 'SF Mono', 'Menlo', monospace;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .input-group input:focus {
+      border-color: rgba(100, 180, 255, 0.5);
+    }
+    .input-group input::placeholder { color: #555; }
+
+    .status-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 0;
+      font-size: 13px;
+    }
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .status-dot.green { background: #4ade80; }
+    .status-dot.red { background: #f87171; }
+    .status-dot.yellow { background: #facc15; }
+    .status-label { color: #ccc; }
+
+    .btn {
+      -webkit-app-region: no-drag;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #3b82f6, #6366f1);
+      color: #fff;
+    }
+    .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+    .btn-primary:disabled { opacity: 0.4; cursor: default; transform: none; }
+    .btn-secondary {
+      background: rgba(255,255,255,0.08);
+      color: #ccc;
+    }
+    .btn-secondary:hover { background: rgba(255,255,255,0.12); }
+
+    .footer {
+      margin-top: auto;
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      padding-top: 16px;
+      border-top: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .hint {
+      font-size: 11px;
+      color: #666;
+      margin-top: 6px;
+    }
+
+    .welcome-banner {
+      background: linear-gradient(135deg, rgba(59,130,246,0.15), rgba(99,102,241,0.15));
+      border: 1px solid rgba(99,102,241,0.2);
+      border-radius: 10px;
+      padding: 16px;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+    .welcome-banner h2 {
+      font-size: 16px;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 4px;
+    }
+    .welcome-banner p {
+      font-size: 12px;
+      color: #aaa;
+    }
+    .welcome-banner.hidden { display: none; }
+
+    .version {
+      font-size: 11px;
+      color: #555;
+      text-align: center;
+      padding-top: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Presence Settings</h1>
+      <button class="close-btn" id="closeBtn">&times;</button>
+    </div>
+
+    <div class="welcome-banner" id="welcomeBanner">
+      <h2>Welcome to Presence</h2>
+      <p>Set up your AI key and mic to get started</p>
+    </div>
+
+    <div class="section">
+      <div class="section-title">AI Configuration</div>
+      <div class="input-group">
+        <label for="apiKeyInput">Gemini API Key</label>
+        <input type="password" id="apiKeyInput" placeholder="Paste your Gemini API key here...">
+        <div class="hint">Get a key at <span style="color:#6366f1">ai.google.dev</span> &mdash; stored locally in .env</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">System Status</div>
+      <div class="status-row">
+        <div class="status-dot" id="aiDot"></div>
+        <span class="status-label" id="aiStatus">Checking AI...</span>
+      </div>
+      <div class="status-row">
+        <div class="status-dot" id="micDot"></div>
+        <span class="status-label" id="micStatus">Checking microphone...</span>
+      </div>
+      <div class="status-row">
+        <div class="status-dot" id="calDot"></div>
+        <span class="status-label" id="calStatus">Checking calendar...</span>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Privacy</div>
+      <div class="status-row">
+        <div class="status-dot green"></div>
+        <span class="status-label">All data stays on your Mac. No analytics. No telemetry.</span>
+      </div>
+    </div>
+
+    <div class="footer">
+      <button class="btn btn-secondary" id="cancelBtn">Cancel</button>
+      <button class="btn btn-primary" id="saveBtn">Save & Continue</button>
+    </div>
+
+    <div class="version" id="versionLabel"></div>
+  </div>
+</body>
+<script>
+  const apiKeyInput = document.getElementById('apiKeyInput');
+  const saveBtn = document.getElementById('saveBtn');
+  const cancelBtn = document.getElementById('cancelBtn');
+  const closeBtn = document.getElementById('closeBtn');
+  const welcomeBanner = document.getElementById('welcomeBanner');
+
+  // Check if first run
+  async function init() {
+    const state = await window.presence.getState();
+    const isFirstRun = !state.settings?.hasCompletedSetup;
+
+    if (!isFirstRun) {
+      welcomeBanner.classList.add('hidden');
+      saveBtn.textContent = 'Save';
+    }
+
+    // Load app info
+    const info = await window.presence.getAppInfo();
+    document.getElementById('versionLabel').textContent = `Presence v${info.version}`;
+
+    // Update status indicators
+    updateStatus('ai', info.aiAvailable, info.aiAvailable ? 'AI ready (Gemini)' : 'Set API key to enable AI features');
+    updateStatus('cal', info.calendarAvailable, info.calendarAvailable ? 'Calendar connected' : 'Calendar unavailable (macOS only)');
+
+    // Check mic
+    try {
+      const micGranted = await window.presence.requestMicPermission();
+      updateStatus('mic', micGranted, micGranted ? 'Microphone access granted' : 'Microphone access denied \u2014 grant in System Settings > Privacy');
+    } catch {
+      updateStatus('mic', false, 'Microphone check failed');
+    }
+  }
+
+  function updateStatus(id, ok, label) {
+    const dot = document.getElementById(id + 'Dot');
+    const text = document.getElementById(id + 'Status');
+    dot.className = 'status-dot ' + (ok ? 'green' : (id === 'cal' ? 'yellow' : 'red'));
+    text.textContent = label;
+  }
+
+  saveBtn.addEventListener('click', async () => {
+    const key = apiKeyInput.value.trim();
+    if (key) {
+      window.presence.saveApiKey(key);
+    }
+    window.presence.completeSetup();
+
+    // Brief delay to let state save, then close
+    saveBtn.textContent = 'Saved!';
+    saveBtn.disabled = true;
+    setTimeout(() => window.close(), 600);
+  });
+
+  cancelBtn.addEventListener('click', () => window.close());
+  closeBtn.addEventListener('click', () => window.close());
+
+  // Allow Enter to save
+  apiKeyInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') saveBtn.click();
+  });
+
+  init();
+</script>
+</html>
